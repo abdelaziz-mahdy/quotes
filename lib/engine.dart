@@ -38,7 +38,28 @@ class ResponseDecoded {
 
 class searchengine extends ChangeNotifier{
 
-  String url = "https://my-qoutes-app-123456.nw.r.appspot.com";
+  //use your domain here as the url
+  
+  /*
+  json responses should look like this 
+[
+{
+"author": "Benjamin Franklin",
+"quote": "Marriage is the most natural state of man, and... the state in which you will find solid happiness.",
+"topic": "Anniversary"
+}, 
+{
+"author": "George Bernard Shaw", 
+"quote": "Marriage is an alliance entered into by a man who can't sleep with the window shut, and a woman who can't sleep with the window open.", 
+"topic": "Anniversary"
+}, 
+{
+"author": "H. L. Mencken",
+"quote": "Strike an average between what a woman thinks of her husband a month before she marries him and what she thinks of him a year afterward, and you will have the truth about him.", 
+"topic": "Anniversary"
+}
+]
+  */
   //String url = "http://127.0.0.1:5000";
   var jsonResponse=[];
   List<String> topics=new List<String>();
