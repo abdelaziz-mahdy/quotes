@@ -1,7 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:quotes/screens/PhotosView.dart';
 import 'package:provider/provider.dart';
-
 import 'engine.dart';
 void main() {
   runApp(MyApp());
@@ -27,16 +27,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -46,11 +36,39 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
     int col=3;
     var topics=[];
+    final _scaffoldKey = GlobalKey<ScaffoldState>();
+
+
+    @override
+    void initState() {
+      onStart();
+    }
+    void onStart() async {
+      await Provider.of<searchengine>(context, listen: false).CheckNewDatabaseVersion();//check for any changes in the database"to be able to add funcnalioty"
+      await Provider.of<searchengine>(context, listen: false).RowsCount();//check local DB rows
+      if(Provider.of<searchengine>(context, listen: false).DB_Row_count==0){//if the local DB has 0 rows
+        print("Downloading preview Qoutes");
+        await Provider.of<searchengine>(context, listen: false).download_preview_and_insert_to_db(_scaffoldKey);//download a preview for the user
+        print("Downloading Qoutes");
+        await Provider.of<searchengine>(context, listen: false).download_and_insert_to_db(_scaffoldKey,0);//0 is downloading first time text
+      }
+      else
+        {
+        print("Reading DB");
+        Provider.of<searchengine>(context, listen: false).GetLocalDBTopics();
+        await Provider.of<searchengine>(context, listen: false).ServerQoutesCount();//get the server quotes count
+        //if the local DB has rows less than than the server ones
+        if(Provider.of<searchengine>(context, listen: false).DB_Row_count<Provider.of<searchengine>(context, listen: false).ServerCount){
+          print("updating DB");
+          await Provider.of<searchengine>(context, listen: false).download_and_insert_to_db(_scaffoldKey,1);//1 is updating text
+        }
+      }
+      //if(topics.length==0){Provider.of<searchengine>(context, listen: false).getTopics();topics=Provider.of<searchengine>(context, listen: false).topics;} //push to next screen
+    }
 
   @override
   Widget build(BuildContext context) {
-    if(topics.length==0){Provider.of<searchengine>(context, listen: false).getTopics();
-    topics=Provider.of<searchengine>(context, listen: false).topics;}
+
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -58,6 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.black,
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
@@ -65,26 +84,19 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         centerTitle: true,
         backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(icon:Icon(Icons.favorite,color: Colors.red,size: 30,),
+              onPressed: (){
+                Provider.of<searchengine>(context, listen: false).clearold();
+                Navigator.of(context).push(_createRoute("Favorite"));
+              })
+        ],
       ),
       body: Consumer<searchengine>(
       builder: (context,searchengine data,child) {
-        return SingleChildScrollView(
-          child: Wrap(
-              spacing: 8.0, // gap between adjacent chips
-              runSpacing: 4.0, // gap between lines
-
-       children:topics.map<Widget>((document) {
-           return GestureDetector(onTap: (){
-             Provider.of<searchengine>(context, listen: false).clearold();
-             Provider.of<searchengine>(context, listen: false).GetTopicQuotes(document);
-
-           Navigator.push(context, MaterialPageRoute(builder: (context)=>  PhotosList(document)));
-           },
-               child: DataCard(document));
-       }).toList()
-
-          ),
-        );
+        return data.topics.length!=0?SingleChildScrollView(
+          child: TopicCards(data, context),
+        ):Center(child: CircularProgressIndicator(backgroundColor: Colors.black,),);
 
         }
       ),
@@ -94,6 +106,49 @@ class _MyHomePageState extends State<MyHomePage> {
       );
 
   }
+
+  Wrap TopicCards(searchengine data, BuildContext context) {
+    return Wrap(
+          spacing: 5,
+          runSpacing: 5,
+     children:data.topics.map<Widget>((document) {
+         return Material(
+           color: Colors.transparent,
+
+           child: InkWell(
+               borderRadius: BorderRadius.all(Radius.circular(15)),
+               splashColor: Colors.blue,
+               highlightColor: Colors.blue,
+               onTap: (){
+             Provider.of<searchengine>(context, listen: false).clearold();
+           //Navigator.push(context, MaterialPageRoute(builder: (context)=>  PhotosList(document)));
+             Navigator.of(context).push(_createRoute(document));
+
+           },
+               child: DataCard(document)),
+         );
+     }).toList()
+
+        );
+  }
+  Route _createRoute(var document) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => PhotosList(document),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var begin = Offset(1, 0);
+        var end = Offset.zero;
+        var curve = Curves.ease;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
+    );
+  }
+
 }
 class DataCard extends StatelessWidget {
   var topic;
@@ -102,25 +157,22 @@ class DataCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     //print(data);
-    return Container(
+    return Ink(
       decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
 
           borderRadius: BorderRadius.all(
-              Radius.circular(10),
+              Radius.circular(15),
           ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey,
-            blurRadius: 1.0,
-            spreadRadius: 0.0,
-            offset: Offset(0, 0), // shadow direction: bottom right
+            color: Colors.black,
+            blurRadius: 3.0,
+            spreadRadius: 1.0,
           )
         ],
       ),
       padding: EdgeInsets.all(15),
-      margin:EdgeInsets.all(5),
-
       child: Text(
         topic,
         style: TextStyle(fontSize: 15),
