@@ -1,6 +1,6 @@
 # quotes
 
-Quotes App.
+Flutter App: read quotes about the subject you pick 
 
 ## Getting Started
 
