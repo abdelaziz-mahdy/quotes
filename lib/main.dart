@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:quotes/screens/PhotosView.dart';
 import 'package:provider/provider.dart';
 import 'engine.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -12,21 +12,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<searchengine>(
-        create: (context)=> searchengine(),
+      create: (context) => searchengine(),
       child: MaterialApp(
         darkTheme: ThemeData.dark(),
         theme: ThemeData.light(),
         home: MyHomePage(
           title: "Quotes Topics",
         ),
-
       ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({super.key, required this.title});
   final String title;
 
   @override
@@ -34,41 +33,48 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-    int col=3;
-    var topics=[];
-    final _scaffoldKey = GlobalKey<ScaffoldState>();
+  int col = 3;
+  var topics = [];
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  @override
+  void initState() {
+    onStart();
+  }
 
-    @override
-    void initState() {
-      onStart();
-    }
-    void onStart() async {
-      await Provider.of<searchengine>(context, listen: false).CheckNewDatabaseVersion();//check for any changes in the database"to be able to add funcnalioty"
-      await Provider.of<searchengine>(context, listen: false).RowsCount();//check local DB rows
-      if(Provider.of<searchengine>(context, listen: false).DB_Row_count==0){//if the local DB has 0 rows
-        print("Downloading preview Qoutes");
-        await Provider.of<searchengine>(context, listen: false).download_preview_and_insert_to_db(_scaffoldKey);//download a preview for the user
-        print("Downloading Qoutes");
-        await Provider.of<searchengine>(context, listen: false).download_and_insert_to_db(_scaffoldKey,0);//0 is downloading first time text
+  void onStart() async {
+    await Provider.of<searchengine>(context, listen: false)
+        .CheckNewDatabaseVersion(); //check for any changes in the database"to be able to add funcnalioty"
+    await Provider.of<searchengine>(context, listen: false)
+        .RowsCount(); //check local DB rows
+    if (Provider.of<searchengine>(context, listen: false).DB_Row_count == 0) {
+      //if the local DB has 0 rows
+      print("Downloading preview Qoutes");
+      await Provider.of<searchengine>(context, listen: false)
+          .download_preview_and_insert_to_db(
+              _scaffoldKey); //download a preview for the user
+      print("Downloading Qoutes");
+      await Provider.of<searchengine>(context, listen: false)
+          .download_and_insert_to_db(
+              _scaffoldKey, 0); //0 is downloading first time text
+    } else {
+      print("Reading DB");
+      Provider.of<searchengine>(context, listen: false).GetLocalDBTopics();
+      await Provider.of<searchengine>(context, listen: false)
+          .ServerQoutesCount(); //get the server quotes count
+      //if the local DB has rows less than than the server ones
+      if (Provider.of<searchengine>(context, listen: false).DB_Row_count <
+          Provider.of<searchengine>(context, listen: false).ServerCount) {
+        print("updating DB");
+        await Provider.of<searchengine>(context, listen: false)
+            .download_and_insert_to_db(_scaffoldKey, 1); //1 is updating text
       }
-      else
-        {
-        print("Reading DB");
-        Provider.of<searchengine>(context, listen: false).GetLocalDBTopics();
-        await Provider.of<searchengine>(context, listen: false).ServerQoutesCount();//get the server quotes count
-        //if the local DB has rows less than than the server ones
-        if(Provider.of<searchengine>(context, listen: false).DB_Row_count<Provider.of<searchengine>(context, listen: false).ServerCount){
-          print("updating DB");
-          await Provider.of<searchengine>(context, listen: false).download_and_insert_to_db(_scaffoldKey,1);//1 is updating text
-        }
-      }
-      //if(topics.length==0){Provider.of<searchengine>(context, listen: false).getTopics();topics=Provider.of<searchengine>(context, listen: false).topics;} //push to next screen
     }
+    //if(topics.length==0){Provider.of<searchengine>(context, listen: false).getTopics();topics=Provider.of<searchengine>(context, listen: false).topics;} //push to next screen
+  }
 
   @override
   Widget build(BuildContext context) {
-
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -85,61 +91,67 @@ class _MyHomePageState extends State<MyHomePage> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         actions: [
-          IconButton(icon:Icon(Icons.favorite,color: Colors.red,size: 30,),
-              onPressed: (){
+          IconButton(
+              icon: Icon(
+                Icons.favorite,
+                color: Colors.red,
+                size: 30,
+              ),
+              onPressed: () {
                 Provider.of<searchengine>(context, listen: false).clearold();
                 Navigator.of(context).push(_createRoute("Favorite"));
               })
         ],
       ),
-      body: Consumer<searchengine>(
-      builder: (context,searchengine data,child) {
-        return data.topics.length!=0?SingleChildScrollView(
-          child: TopicCards(data, context),
-        ):Center(child: CircularProgressIndicator(backgroundColor: Colors.black,),);
-
-        }
-      ),
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-
-      );
-
+      body:
+          Consumer<searchengine>(builder: (context, searchengine data, child) {
+        return data.topics.length != 0
+            ? SingleChildScrollView(
+                child: TopicCards(data, context),
+              )
+            : Center(
+                child: CircularProgressIndicator(
+                  backgroundColor: Colors.black,
+                ),
+              );
+      }),
+      // Center is a layout widget. It takes a single child and positions it
+      // in the middle of the parent.
+    );
   }
 
   Wrap TopicCards(searchengine data, BuildContext context) {
     return Wrap(
-          spacing: 5,
-          runSpacing: 5,
-     children:data.topics.map<Widget>((document) {
-         return Material(
-           color: Colors.transparent,
-
-           child: InkWell(
-               borderRadius: BorderRadius.all(Radius.circular(15)),
-               splashColor: Colors.blue,
-               highlightColor: Colors.blue,
-               onTap: (){
-             Provider.of<searchengine>(context, listen: false).clearold();
-           //Navigator.push(context, MaterialPageRoute(builder: (context)=>  PhotosList(document)));
-             Navigator.of(context).push(_createRoute(document));
-
-           },
-               child: DataCard(document)),
-         );
-     }).toList()
-
-        );
+        spacing: 5,
+        runSpacing: 5,
+        children: data.topics.map<Widget>((document) {
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+                borderRadius: BorderRadius.all(Radius.circular(15)),
+                splashColor: Colors.blue,
+                highlightColor: Colors.blue,
+                onTap: () {
+                  Provider.of<searchengine>(context, listen: false).clearold();
+                  //Navigator.push(context, MaterialPageRoute(builder: (context)=>  PhotosList(document)));
+                  Navigator.of(context).push(_createRoute(document));
+                },
+                child: DataCard(document)),
+          );
+        }).toList());
   }
+
   Route _createRoute(var document) {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => PhotosList(document),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          PhotosList(document),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         var begin = Offset(1, 0);
         var end = Offset.zero;
         var curve = Curves.ease;
 
-        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
 
         return SlideTransition(
           position: animation.drive(tween),
@@ -148,8 +160,8 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
   }
-
 }
+
 class DataCard extends StatelessWidget {
   var topic;
   DataCard(this.topic);
@@ -159,11 +171,10 @@ class DataCard extends StatelessWidget {
     //print(data);
     return Ink(
       decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-
-          borderRadius: BorderRadius.all(
-              Radius.circular(15),
-          ),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.all(
+          Radius.circular(15),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black,
@@ -181,4 +192,3 @@ class DataCard extends StatelessWidget {
     );
   }
 }
-
