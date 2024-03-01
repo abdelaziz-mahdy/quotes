@@ -47,7 +47,6 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: Provider.of<searchengine>(context, listen: false).SelectedExist(
                   Provider.of<searchengine>(context, listen: false)
                       .DB_quotes) ==
@@ -94,7 +93,6 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
   Material BuildQoutesCards(
       BuildContext context, searchengine data, int index) {
     return Material(
-      color: Colors.transparent,
       child: InkWell(
           borderRadius: BorderRadius.all(
             Radius.circular(20),
@@ -130,13 +128,6 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
         borderRadius: BorderRadius.all(
           Radius.circular(20),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black,
-            blurRadius: 3.0,
-            spreadRadius: 1.0,
-          )
-        ],
       ),
       padding: EdgeInsets.all(15),
       child: Column(
@@ -191,7 +182,6 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black,
             blurRadius: 3.0,
             spreadRadius: 1.0,
           )

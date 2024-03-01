@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:quotes/screens/PhotosView.dart';
+import 'package:quotes/screens/photos_view.dart';
 import 'package:provider/provider.dart';
 import 'engine.dart';
 
@@ -16,6 +16,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         darkTheme: ThemeData.dark(),
         theme: ThemeData.light(),
+        themeMode: ThemeMode.system,
         home: MyHomePage(
           title: "Quotes Topics",
         ),
@@ -40,6 +41,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     onStart();
+    super.initState();
   }
 
   void onStart() async {
@@ -83,13 +85,11 @@ class _MyHomePageState extends State<MyHomePage> {
     // than having to individually change instances of widgets.
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.black,
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
         actions: [
           IconButton(
               icon: Icon(
@@ -126,7 +126,6 @@ class _MyHomePageState extends State<MyHomePage> {
         runSpacing: 5,
         children: data.topics.map<Widget>((document) {
           return Material(
-            color: Colors.transparent,
             child: InkWell(
                 borderRadius: BorderRadius.all(Radius.circular(15)),
                 splashColor: Colors.blue,
@@ -169,25 +168,19 @@ class DataCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     //print(data);
-    return Ink(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.all(
-          Radius.circular(15),
+    return Card(
+      child: Ink(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.all(
+            Radius.circular(15),
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black,
-            blurRadius: 3.0,
-            spreadRadius: 1.0,
-          )
-        ],
-      ),
-      padding: EdgeInsets.all(15),
-      child: Text(
-        topic,
-        style: TextStyle(fontSize: 15),
-        maxLines: 1,
+        padding: EdgeInsets.all(15),
+        child: Text(
+          topic,
+          style: TextStyle(fontSize: 15),
+          maxLines: 1,
+        ),
       ),
     );
   }
