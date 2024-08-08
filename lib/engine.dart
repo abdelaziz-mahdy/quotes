@@ -1,111 +1,59 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
 import 'package:path/path.dart';
+import 'package:quotes/models/quote.dart';
 import 'package:share/share.dart';
 import 'package:sqflite/sqflite.dart';
-import 'snackbars.dart';
+import 'snack_bars.dart';
 
-class ResponseDecoded {
-  String quote = "";
-  String author = "";
-  String topic = "";
-  int Selected = 0;
-  int Favorite = 0;
-
-  ResponseDecoded(this.quote, this.author, this.topic, this.Favorite);
-  void toggleSelected() {
-    Selected++;
-    Selected = Selected % 2;
-    print(Selected);
-  }
-
-  void toggleFavorite() {
-    Favorite++;
-    Favorite = Favorite % 2;
-    print(Favorite);
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'quote': quote,
-      'author': author,
-      'topic': topic,
-      'favorite': Favorite,
-    };
-  }
-}
-
-class searchengine extends ChangeNotifier {
-  //use your domain here as the url
-
-  /*
-  json responses should look like this 
-[
-{
-"author": "Benjamin Franklin",
-"quote": "Marriage is the most natural state of man, and... the state in which you will find solid happiness.",
-"topic": "Anniversary"
-}, 
-{
-"author": "George Bernard Shaw", 
-"quote": "Marriage is an alliance entered into by a man who can't sleep with the window shut, and a woman who can't sleep with the window open.", 
-"topic": "Anniversary"
-}, 
-{
-"author": "H. L. Mencken",
-"quote": "Strike an average between what a woman thinks of her husband a month before she marries him and what she thinks of him a year afterward, and you will have the truth about him.", 
-"topic": "Anniversary"
-}
-]
-  */
+class Processor extends ChangeNotifier {
   // String url = "http://127.0.0.1:5000";
   String url = "https://my-qoutes-app-123456.nw.r.appspot.com";
 
   var jsonResponse = [];
   List<String> topics = [];
-  List<ResponseDecoded> responses = [];
-  List<ResponseDecoded> DB_quotes = [];
-  List<ResponseDecoded> Old_DB_quotes = [];
-  int test_count = 0;
-  int DB_Row_count = 0;
-  int ServerCount = 0;
-  int DB_version = 2;
+  List<Quote> responses = [];
+  List<Quote> dbQuotes = [];
+  List<Quote> oldDbQuotes = [];
+  int testCount = 0;
+  int dbRowCount = 0;
+  int serverCount = 0;
+  int dbVersion = 2;
   List<int> state = [0, 25, 50, 75, 100];
-  void JsonToEncoded(var response) {
+  void jsonToEncoded(var response) {
     for (int i = 0; i < response.length; i++) {
-      ResponseDecoded note = ResponseDecoded(
+      Quote note = Quote(
           response[i]['quote'], response[i]['author'], response[i]['topic'], 0);
       responses.add(note);
     }
   }
 
-  void JsonToEncodedTopics(var response) {
+  void jsonToEncodedTopics(var response) {
     for (int i = 0; i < response.length; i++) {
       topics.add(response[i]['topic']);
     }
     print(topics);
   }
 
-  void JsonToCount(var response) {
+  void jsonToCount(var response) {
     print(response);
-    ServerCount = int.parse(response);
+    serverCount = int.parse(response);
   }
 
-  int NumSelected(var List) {
+  int numSelected(List<Quote> list) {
     int selected = 0;
-    for (int i = 0; i < List.length; i++) {
-      if (List[i].Selected == 1) {
+    for (int i = 0; i < list.length; i++) {
+      if (list[i].selected == 1) {
         selected++;
       }
     }
     return selected;
   }
 
-  bool SelectedExist(var List) {
-    for (int i = 0; i < List.length; i++) {
-      if (List[i].Selected == 1) {
+  bool selectedExist(List<Quote> list) {
+    for (int i = 0; i < list.length; i++) {
+      if (list[i].selected == 1) {
         print(true);
         return true;
       }
@@ -114,37 +62,31 @@ class searchengine extends ChangeNotifier {
     return false;
   }
 
-  void Selected(var List, int index) {
-    List[index].toggleSelected();
+  void selected(List<Quote> list, int index) {
+    list[index].toggleSelected();
     notifyListeners();
   }
 
-  void toggleFavorite_update_db(var List, int index) {
-    List[index].toggleFavorite();
-    UpdateDB(DB_quotes);
+  void toggleFavoriteUpdateDb(List<Quote> list, int index) {
+    list[index].toggleFavorite();
+    updateDB(dbQuotes);
     notifyListeners();
   }
 
-  void ShareSelected(var List) {
-    var ToShare = [];
-    List.forEach((element) {
-      if (element.Selected == 1) {
-        element.Selected = 0;
-        ToShare.add(element);
+  void shareSelected(List<Quote> list) {
+    List<Quote> toShare = [];
+    for (var element in list) {
+      if (element.selected == 1) {
+        element.selected = 0;
+        toShare.add(element);
       }
-    });
-    String ToShareString = "";
-    ToShare.forEach((element) {
-      ToShareString = ToShareString +
-          '''
-Quote: ''' +
-          element.quote +
-          '''\n
-Author: ''' +
-          element.author +
-          "\n\n";
-    });
-    Share.share(ToShareString);
+    }
+    String stringToShare = "";
+    for (var element in toShare) {
+      stringToShare = "${'''${'''${stringToShare}Quote: ${element.quote}'''}\n
+Author: ${element.author}'''}\n\n";
+    }
+    Share.share(stringToShare);
     notifyListeners();
   }
 
@@ -160,14 +102,14 @@ Author: ''' +
       jsonResponse = convert.jsonDecode(response.body);
       print(jsonResponse);
       jsonResponse.shuffle();
-      JsonToEncoded(jsonResponse);
+      jsonToEncoded(jsonResponse);
 //      jsonResponse[0]["author"]; = author name
 //      jsonResponse[0]["quote"]; = quotes text
     } else {
       print("Request failed with status: ${response.statusCode}.");
     }
     print("all items got retrieved");
-    DB_quotes = responses;
+    dbQuotes = responses;
     notifyListeners();
   }
 
@@ -180,54 +122,54 @@ Author: ''' +
       jsonResponse = convert.jsonDecode(response.body);
       print(jsonResponse);
       jsonResponse.shuffle();
-      JsonToEncoded(jsonResponse);
+      jsonToEncoded(jsonResponse);
 //      jsonResponse[0]["author"]; = author name
 //      jsonResponse[0]["quote"]; = quotes text
     } else {
       print("Request failed with status: ${response.statusCode}.");
     }
     print("all items got retrieved");
-    DB_quotes = responses;
+    dbQuotes = responses;
     notifyListeners();
   }
 
-  Future<void> CheckNewDatabaseVersion() async {
+  Future<void> checkNewDatabaseVersion() async {
     int oldversion = 999;
     bool exists;
-    exists = await CheckIfDatabaseExists();
+    exists = await checkIfDatabaseExists();
     try {
       if (exists) {
-        await InitDB();
+        await initDB();
         final Database db = await database;
         print(oldversion);
         oldversion = await db.getVersion();
         print(oldversion);
       }
     } catch (_) {}
-    if (oldversion < DB_version && oldversion != 0) {
+    if (oldversion < dbVersion && oldversion != 0) {
       print("Reading old Database");
-      await ReadDB();
+      await readDB();
       print("deleting old Database");
-      await DeleteDataBase();
+      await deleteDataBase();
       print("creating new Database");
-      await CreateDB();
+      await createDB();
       print("updating new Database");
-      await UpdateDB(DB_quotes);
+      await updateDB(dbQuotes);
     } else {
       print("Database is at last version");
     }
   }
 
-  Future<void> DeleteDataBase() async {
+  Future<void> deleteDataBase() async {
     final databasesPath = await getDatabasesPath();
-    final path = join(databasesPath, DatabaseName);
+    final path = join(databasesPath, databaseName);
     var db = await openDatabase(path);
     db.close();
     //delete the old database so you can copy the new one
     await deleteDatabase(path);
   }
 
-  Future<void> getQuotes_db() async {
+  Future<void> getQuotesDb() async {
     http.Response response = await http.get(getUrlForRoute("/see_db"));
 
     print(response.body);
@@ -235,20 +177,20 @@ Author: ''' +
       jsonResponse = convert.jsonDecode(response.body);
       print(jsonResponse);
       jsonResponse.shuffle();
-      JsonToEncoded(jsonResponse);
+      jsonToEncoded(jsonResponse);
       //      jsonResponse[0]["author"]; = author name
       //      jsonResponse[0]["quote"]; = quotes text
     } else {
       print("Request failed with status: ${response.statusCode}.");
     }
     print("all items got retrieved");
-    DB_quotes = responses;
+    dbQuotes = responses;
     notifyListeners();
   }
 
-  //try to retrive all and do the proccesing in the mobile phone
+  //try to retrieve all and do the proccesing in the mobile phone
   //save the qoutes it got from server to DB
-  Future<void> SaveQoutesResponse() async {
+  Future<void> saveQuotesResponse() async {
     // Get a reference to the database.
     final Database db = await database;
 
@@ -256,13 +198,13 @@ Author: ''' +
     // `conflictAlgorithm` to use in case the same dog is inserted twice.
     //
     // In this case, replace any previous data.
-    test_count = 0;
+    testCount = 0;
     print("\n\n\n\n\n\n\ninserting to Qoutes DB");
     responses.forEach((element) async {
-      test_count++;
-      print(test_count);
+      testCount++;
+      print(testCount);
       await db.insert(
-        TableName,
+        tableName,
         element.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -270,16 +212,16 @@ Author: ''' +
     notifyListeners();
   }
 
-  Future<void> GetTopicQuotes(String topic) async {
-    http.Response response = await http
-        .get(getUrlForRoute("/GetQuotesByTopicFromDB/?topic=" + topic));
+  Future<void> getTopicQuotes(String topic) async {
+    http.Response response =
+        await http.get(getUrlForRoute("/GetQuotesByTopicFromDB/?topic=$topic"));
 
     print(response.body);
     if (response.statusCode == 200) {
       jsonResponse = convert.jsonDecode(response.body);
       print(jsonResponse);
       jsonResponse.shuffle();
-      JsonToEncoded(jsonResponse);
+      jsonToEncoded(jsonResponse);
 //      jsonResponse[0]["author"]; = author name
 //      jsonResponse[0]["quote"]; = quotes text
     } else {
@@ -288,21 +230,21 @@ Author: ''' +
     notifyListeners();
   }
 
-  void clearold() {
+  void clearOld() {
     responses.clear();
-    DB_quotes.clear();
+    dbQuotes.clear();
     jsonResponse.clear();
   }
 
   Future<void> getTopics() async {
-    if (jsonResponse.length == 0) {
+    if (jsonResponse.isEmpty) {
       http.Response response = await http.get(getUrlForRoute("/getdbtopics"));
 
       if (response.statusCode == 200) {
         jsonResponse = convert.jsonDecode(response.body);
 
         jsonResponse.shuffle();
-        JsonToEncodedTopics(jsonResponse);
+        jsonToEncodedTopics(jsonResponse);
 //      jsonResponse[0]["author"]; = author name
 //      jsonResponse[0]["quote"]; = quotes text
       } else {
@@ -312,63 +254,68 @@ Author: ''' +
     notifyListeners();
   }
 
-  Future<void> download_and_insert_to_db(
-      GlobalKey<ScaffoldState> scafold, int snacktext) async {
+  Future<void> downloadAndInsertToDb(
+      GlobalKey<ScaffoldState> scaffold, int snackText) async {
     //snack text =0 text ==downloading(first time)
     //snack text =1 text ==updating
-    await CreateDB();
-    ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scafold.currentContext!).showSnackBar(downloading(state[0], snacktext));
-    await ReadDB();
-    ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scafold.currentContext!).showSnackBar(downloading(state[1], snacktext));
+    await createDB();
+    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
+    ScaffoldMessenger.of(scaffold.currentContext!)
+        .showSnackBar(downloading(state[0], snackText));
+    await readDB();
+    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
+    ScaffoldMessenger.of(scaffold.currentContext!)
+        .showSnackBar(downloading(state[1], snackText));
     //await getQuotes_db();
     await getQuotes();
-    ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scafold.currentContext!).showSnackBar(downloading(state[2], snacktext));
-    await UpdateDB(DB_quotes);
-    ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scafold.currentContext!).showSnackBar(downloading(state[3], snacktext));
-    await UpdateDB(Old_DB_quotes);
-    ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scafold.currentContext!).showSnackBar(downloading(state[4], snacktext));
-    await GetLocalDBTopics();
-    ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
+    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
+    ScaffoldMessenger.of(scaffold.currentContext!)
+        .showSnackBar(downloading(state[2], snackText));
+    await updateDB(dbQuotes);
+    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
+    ScaffoldMessenger.of(scaffold.currentContext!)
+        .showSnackBar(downloading(state[3], snackText));
+    await updateDB(oldDbQuotes);
+    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
+    ScaffoldMessenger.of(scaffold.currentContext!)
+        .showSnackBar(downloading(state[4], snackText));
+    await getLocalDBTopics();
+    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
   }
 
-  Future<void> download_preview_and_insert_to_db(
+  Future<void> downloadPreviewAndInsertToDb(
       GlobalKey<ScaffoldState> scafold) async {
-    await CreateDB();
-  ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
-  ScaffoldMessenger.of(scafold.currentContext!).showSnackBar(downloading(state[0], 2));
-
-
+    await createDB();
+    ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
+    ScaffoldMessenger.of(scafold.currentContext!)
+        .showSnackBar(downloading(state[0], 2));
 
     //await getQuotes_db();
     await getPreviewQuotes();
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scafold.currentContext!).showSnackBar(downloading(state[3], 2));
+    ScaffoldMessenger.of(scafold.currentContext!)
+        .showSnackBar(downloading(state[3], 2));
 
-    
-    await UpdateDB(DB_quotes);
+    await updateDB(dbQuotes);
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scafold.currentContext!).showSnackBar(downloading(state[4], 2));
-    await GetLocalDBTopics();
+    ScaffoldMessenger.of(scafold.currentContext!)
+        .showSnackBar(downloading(state[4], 2));
+    await getLocalDBTopics();
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
   }
 
   //database values
-  String DatabaseName = "quotes_database.db";
-  String TableName = "quotes";
+  String databaseName = "quotes_database.db";
+  String tableName = "quotes";
   late Future<Database> database;
   //create the DB+Get refrence for it
 
-  Future<void> CreateDB() async {
+  Future<void> createDB() async {
     database = openDatabase(
       // Set the path to the database. Note: Using the `join` function from the
       // `path` package is best practice to ensure the path is correctly
       // constructed for each platform.
-      join(await getDatabasesPath(), DatabaseName),
+      join(await getDatabasesPath(), databaseName),
       onCreate: (db, version) {
         // Run the CREATE TABLE statement on the database.
 
@@ -378,31 +325,31 @@ Author: ''' +
       },
       // Set the version. This executes the onCreate function and provides a
       // path to perform database upgrades and downgrades.
-      version: DB_version,
+      version: dbVersion,
     );
   }
 
-  Future<void> InitDB() async {
+  Future<void> initDB() async {
     database = openDatabase(
       // Set the path to the database. Note: Using the `join` function from the
       // `path` package is best practice to ensure the path is correctly
       // constructed for each platform.
-      join(await getDatabasesPath(), DatabaseName),
+      join(await getDatabasesPath(), databaseName),
     );
   }
 
-  Future<bool> CheckIfDatabaseExists() async {
+  Future<bool> checkIfDatabaseExists() async {
     return databaseFactory
-        .databaseExists(join(await getDatabasesPath(), DatabaseName));
+        .databaseExists(join(await getDatabasesPath(), databaseName));
   }
 
-  Future<void> deleteDBChoices(ResponseDecoded response) async {
+  Future<void> deleteDBChoices(Quote response) async {
     final db = await database;
     List<String> values = [];
     values.add(response.quote);
     values.add(response.author);
     values.add(response.topic);
-    await db.delete(TableName,
+    await db.delete(tableName,
         // Use a `where` clause to delete a specific dog.
         where: "quote = ? AND author = ? AND topic = ?",
         // Pass the Dog's id as a whereArg to prevent SQL injection.
@@ -411,14 +358,14 @@ Author: ''' +
     notifyListeners();
   }
 
-  Future<void> GetTopicsFromDB() async {
+  Future<void> getTopicsFromDB() async {
     final db = await database;
-    JsonToEncodedTopics(
+    jsonToEncodedTopics(
         await db.rawQuery('SELECT * DISTINCT topic FROM quotes;'));
     notifyListeners();
   }
 
-  Future<void> UpdateDB(var list) async {
+  Future<void> updateDB(List<Quote> list) async {
     // Get a reference to the database.
     final Database db = await database;
 
@@ -430,7 +377,7 @@ Author: ''' +
 
     var batch = db.batch();
     list.forEach((element) async {
-      batch.insert(TableName, element.toMap(),
+      batch.insert(tableName, element.toMap(),
           conflictAlgorithm: ConflictAlgorithm.replace);
       //await db.insert(TableName,element.toMap(), conflictAlgorithm: ConflictAlgorithm.replace,);
     });
@@ -439,30 +386,30 @@ Author: ''' +
     print("Done");
   }
 
-  Future<void> ReadDB() async {
+  Future<void> readDB() async {
     // Get a reference to the database.
     final Database db = await database;
 
     // Query the table for all The Notes.
-    final List<Map<String, dynamic>> maps = await db.query(TableName);
+    final List<Map<String, dynamic>> maps = await db.query(tableName);
 
     // Convert the List<Map<String, dynamic> into a List<Note>.
 
-    DB_quotes = List.generate(maps.length, (i) {
-      return ResponseDecoded(
+    dbQuotes = List.generate(maps.length, (i) {
+      return Quote(
         maps[i]['quote'],
         maps[i]['author'],
         maps[i]['topic'],
         maps[i]['favorite'],
       );
     });
-    DB_quotes.shuffle();
-    Old_DB_quotes = DB_quotes;
+    dbQuotes.shuffle();
+    oldDbQuotes = dbQuotes;
     notifyListeners();
   }
 
-  Future<void> GetLocalDBTopics() async {
-    await CreateDB();
+  Future<void> getLocalDBTopics() async {
+    await createDB();
     // Get a reference to the database.
     final Database db = await database;
 
@@ -477,8 +424,8 @@ Author: ''' +
     notifyListeners();
   }
 
-  Future<void> Vaccum() async {
-    await CreateDB();
+  Future<void> vacuum() async {
+    await createDB();
     // Get a reference to the database.
     final Database db = await database;
 
@@ -488,8 +435,8 @@ Author: ''' +
     notifyListeners();
   }
 
-  Future<void> GetLocalDBQoutes(String topic) async {
-    await CreateDB();
+  Future<void> getLocalDBQuotes(String topic) async {
+    await createDB();
     // Get a reference to the database.
     final Database db = await database;
 
@@ -497,20 +444,20 @@ Author: ''' +
     // Convert the List<Map<String, dynamic> into a List<Note>.
     final List<Map<String, dynamic>> maps =
         await db.rawQuery('''SELECT * FROM quotes where topic = ?''', [topic]);
-    DB_quotes = List.generate(maps.length, (i) {
-      return ResponseDecoded(
+    dbQuotes = List.generate(maps.length, (i) {
+      return Quote(
         maps[i]['quote'],
         maps[i]['author'],
         maps[i]['topic'],
         maps[i]['favorite'],
       );
     });
-    DB_quotes.shuffle();
+    dbQuotes.shuffle();
     notifyListeners();
   }
 
-  Future<void> GetFavorites() async {
-    await CreateDB();
+  Future<void> getFavorites() async {
+    await createDB();
     // Get a reference to the database.
     final Database db = await database;
 
@@ -518,37 +465,37 @@ Author: ''' +
     // Convert the List<Map<String, dynamic> into a List<Note>.
     final List<Map<String, dynamic>> maps =
         await db.rawQuery('''SELECT * FROM quotes where favorite = ?''', [1]);
-    DB_quotes = List.generate(maps.length, (i) {
-      return ResponseDecoded(
+    dbQuotes = List.generate(maps.length, (i) {
+      return Quote(
         maps[i]['quote'],
         maps[i]['author'],
         maps[i]['topic'],
         maps[i]['favorite'],
       );
     });
-    DB_quotes.shuffle();
+    dbQuotes.shuffle();
     notifyListeners();
   }
 
-  Future<void> RowsCount() async {
+  Future<void> rowsCount() async {
     // Get a reference to the database.
-    await CreateDB();
+    await createDB();
     Database db = await database;
     // Query the table for all The Notes.
     // Convert the List<Map<String, dynamic> into a List<Note>.
-    DB_Row_count = Sqflite.firstIntValue(
+    dbRowCount = Sqflite.firstIntValue(
             await db.rawQuery('SELECT COUNT(*) FROM quotes')) ??
         0;
-    print(DB_Row_count);
+    print(dbRowCount);
   }
 
-  Future<void> ServerQoutesCount() async {
+  Future<void> serverQuotesCount() async {
     http.Response response =
         await http.get(getUrlForRoute("/see_saved_online_count"));
 
     //print(response.body);
     if (response.statusCode == 200) {
-      JsonToCount(response.body);
+      jsonToCount(response.body);
       //jsonResponse = convert.jsonDecode(response.body);
       //JsonToCount(jsonResponse);
 
