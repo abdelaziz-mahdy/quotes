@@ -39,3 +39,27 @@ SnackBar downloading(int state, int snackText) {
     ),
   );
 }
+
+SnackBar downloadFailed({required VoidCallback onRetry}) {
+  return SnackBar(
+    content: const Text(
+      "Couldn't connect. Please check your internet connection.",
+      style: TextStyle(
+          color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+    ),
+    behavior: SnackBarBehavior.floating,
+    backgroundColor: Colors.redAccent,
+    // Persist until the user retries or dismisses it.
+    duration: const Duration(days: 1),
+    action: SnackBarAction(
+      label: 'Retry',
+      textColor: Colors.white,
+      onPressed: onRetry,
+    ),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(
+        Radius.circular(20),
+      ),
+    ),
+  );
+}
