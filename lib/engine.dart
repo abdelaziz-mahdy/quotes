@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
+import 'dart:math';
 import 'package:path/path.dart';
 import 'package:quotes/models/quote.dart';
 import 'package:share_plus/share_plus.dart';
@@ -394,10 +395,8 @@ Author: ${element.author}'''}\n\n";
     // Convert the List<Map<String, dynamic> into a List<Note>.
     final List<Map<String, dynamic>> maps =
         await db.rawQuery('''SELECT DISTINCT topic FROM quotes''');
-    topics = List.generate(maps.length, (i) {
-      return maps[i]['topic'];
-    });
-    topics.shuffle();
+    topics = stableTopicOrder(
+        topics, [for (final row in maps) row['topic'] as String]);
     notifyListeners();
   }
 
@@ -492,4 +491,22 @@ List<Quote> quotesFromJson(String body) {
       Quote(row['quote'] as String, row['author'] as String,
           row['topic'] as String, 0),
   ];
+}
+
+/// Keeps the topics already on screen where they are and appends new ones in
+/// random order. The grid is still shuffled on each launch, but a refresh
+/// after a download no longer moves the chip under the user's finger.
+List<String> stableTopicOrder(List<String> current, List<String> fresh,
+    [Random? random]) {
+  final freshSet = fresh.toSet();
+  final kept = [
+    for (final t in current)
+      if (freshSet.contains(t)) t
+  ];
+  final keptSet = kept.toSet();
+  final added = [
+    for (final t in fresh)
+      if (!keptSet.contains(t)) t
+  ]..shuffle(random);
+  return [...kept, ...added];
 }
