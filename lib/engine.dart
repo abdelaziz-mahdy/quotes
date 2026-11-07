@@ -124,7 +124,8 @@ Author: ${element.author}'''}\n\n";
   /// `favorite` is part of the primary key, so ignoring conflicts keeps the
   /// user's favorites exactly as they are, including ones toggled while the
   /// download was running.
-  Future<void> _insertNewQuotes(List<Quote> quotes) async {
+  @visibleForTesting
+  Future<void> insertNewQuotes(List<Quote> quotes) async {
     final Database db = await database;
     final batch = db.batch();
     for (final quote in quotes) {
@@ -288,7 +289,7 @@ Author: ${element.author}'''}\n\n";
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
         .showSnackBar(downloading(state[2], snackText));
-    await _insertNewQuotes(quotes);
+    await insertNewQuotes(quotes);
     await _recordSyncedServerCount(
         serverCount > 0 ? serverCount : quotes.length);
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
@@ -308,7 +309,7 @@ Author: ${element.author}'''}\n\n";
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
         .showSnackBar(downloading(state[3], 2));
-    await _insertNewQuotes(quotes);
+    await insertNewQuotes(quotes);
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
         .showSnackBar(downloading(state[4], 2));
