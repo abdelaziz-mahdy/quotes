@@ -94,7 +94,7 @@ class Processor extends ChangeNotifier {
       stringToShare = "${'''${'''${stringToShare}Quote: ${element.quote}'''}\n
 Author: ${element.author}'''}\n\n";
     }
-    Share.share(stringToShare);
+    SharePlus.instance.share(ShareParams(text: stringToShare));
     notifyListeners();
   }
 
