@@ -55,27 +55,23 @@ class _MyHomePageState extends State<MyHomePage> {
       await processor.rowsCount(); //check local DB rows
       if (processor.dbRowCount == 0) {
         //if the local DB has 0 rows
-        print("Downloading preview Qoutes");
         await processor.downloadPreviewAndInsertToDb(
             _scaffoldKey); //download a preview for the user
-        print("Downloading Qoutes");
         await processor.downloadAndInsertToDb(
             _scaffoldKey, 0); //0 is downloading first time text
       } else {
-        print("Reading DB");
         processor.getLocalDBTopics();
         await processor.serverQuotesCount(); //get the server quotes count
         //if the local DB has rows less than than the server ones
         if (needsQuoteUpdate(processor.dbRowCount, processor.serverCount,
             await processor.lastSyncedServerCount())) {
-          print("updating DB");
           await processor.downloadAndInsertToDb(
               _scaffoldKey, 1); //1 is updating text
         }
       }
     } catch (e, stack) {
       //network/db failure: clear the stuck progress snackbar and offer a retry
-      print("onStart failed: $e\n$stack");
+      debugPrint("onStart failed: $e\n$stack");
       if (!mounted) return;
       ScaffoldMessenger.of(context).removeCurrentSnackBar();
       ScaffoldMessenger.of(context)

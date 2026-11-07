@@ -22,7 +22,6 @@ class Processor extends ChangeNotifier {
   List<int> state = [0, 25, 50, 75, 100];
 
   void jsonToCount(var response) {
-    print(response);
     serverCount = int.parse(response);
   }
 
@@ -39,11 +38,9 @@ class Processor extends ChangeNotifier {
   bool selectedExist(List<Quote> list) {
     for (int i = 0; i < list.length; i++) {
       if (list[i].selected == 1) {
-        print(true);
         return true;
       }
     }
-    print(false);
     return false;
   }
 
@@ -146,22 +143,14 @@ Author: ${element.author}'''}\n\n";
       if (exists) {
         await initDB();
         final Database db = await database;
-        print(oldversion);
         oldversion = await db.getVersion();
-        print(oldversion);
       }
     } catch (_) {}
     if (oldversion < dbVersion && oldversion != 0) {
-      print("Reading old Database");
       await readDB();
-      print("deleting old Database");
       await deleteDataBase();
-      print("creating new Database");
       await createDB();
-      print("updating new Database");
       await updateDB(dbQuotes);
-    } else {
-      print("Database is at last version");
     }
   }
 
@@ -280,7 +269,6 @@ Author: ${element.author}'''}\n\n";
     // `conflictAlgorithm` to use in case the same dog is inserted twice.
     //
     // In this case, replace any previous data.
-    print("\n\n\n\n\n\n\ninserting to DB");
 
     var batch = db.batch();
     list.forEach((element) async {
@@ -288,9 +276,7 @@ Author: ${element.author}'''}\n\n";
           conflictAlgorithm: ConflictAlgorithm.replace);
       //await db.insert(TableName,element.toMap(), conflictAlgorithm: ConflictAlgorithm.replace,);
     });
-    print("batch.commit is excuting");
     await batch.commit(noResult: true);
-    print("Done");
   }
 
   Future<void> readDB() async {
@@ -379,23 +365,16 @@ Author: ${element.author}'''}\n\n";
     dbRowCount = Sqflite.firstIntValue(
             await db.rawQuery('SELECT COUNT(*) FROM quotes')) ??
         0;
-    print(dbRowCount);
   }
 
   Future<void> serverQuotesCount() async {
     http.Response response =
         await http.get(getUrlForRoute("/see_saved_online_count"));
 
-    //print(response.body);
     if (response.statusCode == 200) {
       jsonToCount(response.body);
-      //jsonResponse = convert.jsonDecode(response.body);
-      //JsonToCount(jsonResponse);
-
-//      jsonResponse[0]["author"]; = author name
-//      jsonResponse[0]["quote"]; = quotes text
     } else {
-      print("Request failed with status: ${response.statusCode}.");
+      debugPrint("Request failed with status: ${response.statusCode}.");
     }
   }
 }

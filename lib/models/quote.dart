@@ -9,13 +9,11 @@ class Quote {
   void toggleSelected() {
     selected++;
     selected = selected % 2;
-    print(selected);
   }
 
   void toggleFavorite() {
     favorite++;
     favorite = favorite % 2;
-    print(favorite);
   }
 
   Map<String, dynamic> toMap() {
