@@ -100,6 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
         centerTitle: true,
         actions: [
           IconButton(
+              tooltip: 'Favorites',
               icon: const Icon(
                 Icons.favorite,
                 color: Colors.red,
