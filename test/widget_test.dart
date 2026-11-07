@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:quotes/engine.dart';
 import 'package:quotes/main.dart';
 import 'package:quotes/models/quote.dart';
+import 'package:quotes/screens/photos_view.dart';
 
 import 'fake_processor.dart';
 
@@ -30,5 +31,20 @@ void main() {
     expect(find.text('Wisdom Quotes'), findsOneWidget);
     expect(find.text('Know thyself.'), findsOneWidget);
     expect(find.text('Socrates'), findsOneWidget);
+  });
+
+  testWidgets('favorites shows an empty state with no favorites', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider<Processor>.value(
+        value: FakeProcessor(),
+        child: const MaterialApp(home: PhotosList('Favorite')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No favorite quotes yet'), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
   });
 }

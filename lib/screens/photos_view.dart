@@ -202,31 +202,26 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
     );
   }
 
-  Ink ADDFavorite(BuildContext context) {
-    return Ink(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.all(
-          Radius.circular(20),
-        ),
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 3.0,
-            spreadRadius: 1.0,
-          )
-        ],
-      ),
-      padding: const EdgeInsets.all(15),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget ADDFavorite(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 96, 32, 32),
+      child: Column(
         children: [
-          SizedBox(
-            height: 5,
-          ),
+          Icon(Icons.favorite_border,
+              size: 64, color: theme.colorScheme.outline),
+          const SizedBox(height: 16),
           Text(
-            'Please Add Some Favorite quotes to display here',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            maxLines: 10,
+            'No favorite quotes yet',
+            style: theme.textTheme.titleLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap the heart on any quote to see it here.',
+            style: theme.textTheme.bodyLarge
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
