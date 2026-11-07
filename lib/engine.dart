@@ -68,6 +68,13 @@ class Processor extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSelection(List<Quote> list) {
+    for (final quote in list) {
+      quote.selected = 0;
+    }
+    notifyListeners();
+  }
+
   void toggleFavoriteUpdateDb(List<Quote> list, int index) {
     list[index].toggleFavorite();
     updateDB(dbQuotes);

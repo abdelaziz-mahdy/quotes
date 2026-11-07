@@ -45,44 +45,58 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: Provider.of<Processor>(context, listen: false).selectedExist(
-                  Provider.of<Processor>(context, listen: false).dbQuotes) ==
-              true
-          ? selectedAppBar(context)
-          : NormalAppBar(),
+    final selecting = Provider.of<Processor>(context, listen: false)
+        .selectedExist(Provider.of<Processor>(context, listen: false).dbQuotes);
+    // While quotes are selected, Back clears the selection instead of
+    // leaving the screen.
+    return PopScope(
+      canPop: !selecting,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) clearSelection();
+      },
+      child: Scaffold(
+        appBar: selecting ? selectedAppBar(context) : NormalAppBar(),
 
-      // Center is a layout widget. It takes a single child and positions it
-      // in the middle of the parent.
-      body: Consumer<Processor>(builder: (context, Processor data, child) {
-        return data.dbQuotes.isNotEmpty
-            ? ListView.separated(
-                padding: _listPadding(context),
-                separatorBuilder: (BuildContext context, int index) =>
-                    const Divider(),
-                itemCount: data.dbQuotes.length,
-                itemBuilder: (BuildContext context, int index) {
-                  _controller.forward();
-                  return FadeTransition(
-                      opacity: _animation,
-                      child: buildQuotesCards(context, data, index));
-                })
-            : data.dbQuotes.isEmpty && appTitle == "Favorite"
-                ? ListView.separated(
-                    padding: _listPadding(context),
-                    separatorBuilder: (BuildContext context, int index) =>
-                        const Divider(),
-                    itemCount: 1,
-                    itemBuilder: (BuildContext context, int index) {
-                      _controller.forward();
-                      return FadeTransition(
-                          opacity: _animation, child: ADDFavorite(context));
-                    })
-                : const Center(
-                    child: CircularProgressIndicator(),
-                  );
-      }),
+        // Center is a layout widget. It takes a single child and positions it
+        // in the middle of the parent.
+        body: Consumer<Processor>(builder: (context, Processor data, child) {
+          return data.dbQuotes.isNotEmpty
+              ? ListView.separated(
+                  padding: _listPadding(context),
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const Divider(),
+                  itemCount: data.dbQuotes.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    _controller.forward();
+                    return FadeTransition(
+                        opacity: _animation,
+                        child: buildQuotesCards(context, data, index));
+                  })
+              : data.dbQuotes.isEmpty && appTitle == "Favorite"
+                  ? ListView.separated(
+                      padding: _listPadding(context),
+                      separatorBuilder: (BuildContext context, int index) =>
+                          const Divider(),
+                      itemCount: 1,
+                      itemBuilder: (BuildContext context, int index) {
+                        _controller.forward();
+                        return FadeTransition(
+                            opacity: _animation, child: ADDFavorite(context));
+                      })
+                  : const Center(
+                      child: CircularProgressIndicator(),
+                    );
+        }),
+      ),
     );
+  }
+
+  void clearSelection() {
+    setState(() {
+      final processor = Provider.of<Processor>(context, listen: false);
+      processor.clearSelection(processor.dbQuotes);
+      onTapSelect = false;
+    });
   }
 
   /// An explicit ListView padding replaces the automatic safe-area padding,
@@ -124,7 +138,7 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         color: data.dbQuotes[index].selected == 0
             ? Theme.of(context).cardColor
-            : Colors.blueGrey,
+            : Theme.of(context).colorScheme.secondaryContainer,
         borderRadius: const BorderRadius.all(
           Radius.circular(20),
         ),
@@ -237,10 +251,17 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
         title: Text("Selected: $selected"),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+        foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: 'Clear selection',
+          onPressed: clearSelection,
+        ),
         actions: [
           IconButton(
               icon: const Icon(Icons.share),
+              tooltip: 'Share selected quotes',
               onPressed: () {
                 setState(() {
                   Provider.of<Processor>(context, listen: false).shareSelected(
