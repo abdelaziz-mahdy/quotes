@@ -111,8 +111,6 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
           borderRadius: const BorderRadius.all(
             Radius.circular(20),
           ),
-          splashColor: Colors.blue,
-          highlightColor: Colors.blue,
           onTap: () {
             if (onTapSelect == true) {
               setState(() {
