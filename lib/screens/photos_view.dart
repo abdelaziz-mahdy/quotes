@@ -143,11 +143,15 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                data.dbQuotes[index].author,
-                style: const TextStyle(fontSize: 18),
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
+              // Expanded so long names ("Philip Stanhope, 4th Earl of
+              // Chesterfield") wrap instead of pushing the heart off screen.
+              Expanded(
+                child: Text(
+                  data.dbQuotes[index].author,
+                  style: const TextStyle(fontSize: 18),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               IconButton(
                   onPressed: () {
