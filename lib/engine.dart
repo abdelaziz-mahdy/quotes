@@ -113,7 +113,9 @@ Author: ${element.author}'''}\n\n";
       throw http.ClientException(
           "Request failed with status: ${response.statusCode}.", uri);
     }
-    return quotesFromJson(response.body);
+    // The full response is ~8.8 MB / 44k quotes: parse it on a background
+    // isolate so the progress snackbar keeps animating.
+    return compute(quotesFromJson, response.body);
   }
 
   /// Adds server quotes the device doesn't have yet. Every column except
@@ -258,7 +260,7 @@ Author: ${element.author}'''}\n\n";
     await createDB();
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
-        .showSnackBar(downloading(state[0], snackText));
+        .showSnackBar(downloading(null, snackText));
     final quotes = await _fetchQuotes("/see_saved_online");
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
@@ -276,7 +278,7 @@ Author: ${element.author}'''}\n\n";
     await createDB();
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
-        .showSnackBar(downloading(state[0], 2));
+        .showSnackBar(downloading(null, 2));
     final quotes = await _fetchQuotes("/see_saved_online_preview");
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)

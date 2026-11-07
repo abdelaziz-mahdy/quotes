@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-SnackBar downloading(int state, int snackText) {
+/// [state] is the percentage done, or null while the size of the remaining
+/// work is unknown (the network fetch); the bar then animates instead of
+/// sitting at 0%.
+SnackBar downloading(int? state, int snackText) {
   //snack text =0 text ==downloading(first time)
   //snack text =1 text ==updating
   //snack text =2 text ==preview
@@ -41,18 +44,20 @@ SnackBar downloading(int state, int snackText) {
             children: [
               Expanded(
                 child: LinearProgressIndicator(
-                  value: state / 100,
+                  value: state == null ? null : state / 100,
                   color: scheme.inversePrimary,
                   backgroundColor:
                       scheme.onInverseSurface.withValues(alpha: 0.2),
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                "$state%",
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+              if (state != null) ...[
+                const SizedBox(width: 12),
+                Text(
+                  "$state%",
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
             ],
           ),
         ],
