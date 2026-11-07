@@ -66,7 +66,8 @@ class _MyHomePageState extends State<MyHomePage> {
         processor.getLocalDBTopics();
         await processor.serverQuotesCount(); //get the server quotes count
         //if the local DB has rows less than than the server ones
-        if (processor.dbRowCount < processor.serverCount) {
+        if (needsQuoteUpdate(processor.dbRowCount, processor.serverCount,
+            await processor.lastSyncedServerCount())) {
           print("updating DB");
           await processor.downloadAndInsertToDb(
               _scaffoldKey, 1); //1 is updating text

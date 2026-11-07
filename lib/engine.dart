@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
+import 'dart:io';
 import 'dart:math';
 import 'package:path/path.dart';
 import 'package:quotes/models/quote.dart';
@@ -131,6 +132,27 @@ Author: ${element.author}'''}\n\n";
           conflictAlgorithm: ConflictAlgorithm.ignore);
     }
     await batch.commit(noResult: true);
+  }
+
+  // Server count at the last completed full download, kept next to the DB.
+  // Rows are inserted with ConflictAlgorithm.ignore, so duplicate rows on the
+  // server keep the local count below the server's forever; without this the
+  // full download would rerun on every launch.
+  Future<File> _syncMarker() async =>
+      File(join(await getDatabasesPath(), 'last_synced_server_count'));
+
+  Future<int?> lastSyncedServerCount() async {
+    try {
+      final file = await _syncMarker();
+      if (!await file.exists()) return null;
+      return int.tryParse((await file.readAsString()).trim());
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  Future<void> _recordSyncedServerCount(int count) async {
+    await (await _syncMarker()).writeAsString('$count');
   }
 
   Future<void> checkNewDatabaseVersion() async {
@@ -267,6 +289,8 @@ Author: ${element.author}'''}\n\n";
     ScaffoldMessenger.of(scaffold.currentContext!)
         .showSnackBar(downloading(state[2], snackText));
     await _insertNewQuotes(quotes);
+    await _recordSyncedServerCount(
+        serverCount > 0 ? serverCount : quotes.length);
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
         .showSnackBar(downloading(state[4], snackText));
@@ -520,3 +544,8 @@ List<String> stableTopicOrder(List<String> current, List<String> fresh,
   ]..shuffle(random);
   return [...kept, ...added];
 }
+
+/// Whether to run the full update download: the server has more quotes than
+/// the device, and that server count isn't the one already fully synced.
+bool needsQuoteUpdate(int localCount, int serverCount, int? lastSynced) =>
+    localCount < serverCount && serverCount != lastSynced;

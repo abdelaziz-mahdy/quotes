@@ -52,6 +52,9 @@ class FakeProcessor extends Processor {
   @override
   Future<void> updateDB(List<Quote> list) async {}
 
+  @override
+  Future<int?> lastSyncedServerCount() async => null;
+
   /// Like the real SQLite reads: replaces [dbQuotes] with fresh, unselected
   /// Quote objects for the same rows.
   void reloadFromDb() {
