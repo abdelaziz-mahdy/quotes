@@ -15,6 +15,7 @@ on:
       - 'test/**'
       - 'tool/**'
       - '.github/**'
+      - 'docs/**'
 concurrency: 
     group: auto-deploy
     cancel-in-progress: true
