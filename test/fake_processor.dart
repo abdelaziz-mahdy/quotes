@@ -51,4 +51,13 @@ class FakeProcessor extends Processor {
 
   @override
   Future<void> updateDB(List<Quote> list) async {}
+
+  /// Like the real SQLite reads: replaces [dbQuotes] with fresh, unselected
+  /// Quote objects for the same rows.
+  void reloadFromDb() {
+    dbQuotes = [
+      for (final q in dbQuotes) Quote(q.quote, q.author, q.topic, q.favorite),
+    ];
+    notifyListeners();
+  }
 }

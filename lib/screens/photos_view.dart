@@ -45,8 +45,9 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-    final selecting = Provider.of<Processor>(context, listen: false)
-        .selectedExist(Provider.of<Processor>(context, listen: false).dbQuotes);
+    // Listen, so a list reload that drops the selection also re-enables Back.
+    final selecting =
+        context.select<Processor, bool>((p) => p.selectedExist(p.dbQuotes));
     // While quotes are selected, Back clears the selection instead of
     // leaving the screen.
     return PopScope(
@@ -158,7 +159,13 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
           // system font sizes.
           Text(
             data.dbQuotes[index].quote,
-            style: const TextStyle(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              // Paired with the selected card's secondaryContainer fill.
+              color: data.dbQuotes[index].selected == 0
+                  ? null
+                  : Theme.of(context).colorScheme.onSecondaryContainer,
+            ),
           ),
           const SizedBox(
             height: 10,

@@ -62,4 +62,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('home'), findsOneWidget);
   });
+
+  testWidgets('one Back leaves after a reload dropped the selection',
+      (tester) async {
+    await openWisdom(tester);
+    await tester.longPress(find.text('Know thyself.'));
+    await tester.pumpAndSettle();
+    expect(find.text('Selected: 1'), findsOneWidget);
+
+    (Provider.of<Processor>(tester.element(find.byType(PhotosList)),
+            listen: false) as FakeProcessor)
+        .reloadFromDb();
+    await tester.pumpAndSettle();
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('home'), findsOneWidget);
+  });
 }
