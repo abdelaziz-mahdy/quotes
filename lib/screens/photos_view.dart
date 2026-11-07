@@ -137,6 +137,12 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
         color: data.dbQuotes[index].selected == 0
             ? Theme.of(context).cardColor
             : Theme.of(context).colorScheme.secondaryContainer,
+        // The tint alone is close to the page colour; the outline makes a
+        // selected card obvious at a glance.
+        border: data.dbQuotes[index].selected == 0
+            ? null
+            : Border.all(
+                color: Theme.of(context).colorScheme.primary, width: 2),
         borderRadius: const BorderRadius.all(
           Radius.circular(20),
         ),
