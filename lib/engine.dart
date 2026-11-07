@@ -14,33 +14,14 @@ class Processor extends ChangeNotifier {
   // String url = "http://127.0.0.1:5000";
   String url = "https://my-qoutes-app-123456.nw.r.appspot.com";
 
-  var jsonResponse = [];
   List<String> topics = [];
-  List<Quote> responses = [];
   List<Quote> dbQuotes = [];
-  List<Quote> oldDbQuotes = [];
-  int testCount = 0;
   int dbRowCount = 0;
   int serverCount = 0;
   int dbVersion = 2;
   List<int> state = [0, 25, 50, 75, 100];
-  void jsonToEncoded(var response) {
-    for (int i = 0; i < response.length; i++) {
-      Quote note = Quote(
-          response[i]['quote'], response[i]['author'], response[i]['topic'], 0);
-      responses.add(note);
-    }
-  }
-
-  void jsonToEncodedTopics(var response) {
-    for (int i = 0; i < response.length; i++) {
-      topics.add(response[i]['topic']);
-    }
-    print(topics);
-  }
 
   void jsonToCount(var response) {
-    print(response);
     serverCount = int.parse(response);
   }
 
@@ -57,11 +38,9 @@ class Processor extends ChangeNotifier {
   bool selectedExist(List<Quote> list) {
     for (int i = 0; i < list.length; i++) {
       if (list[i].selected == 1) {
-        print(true);
         return true;
       }
     }
-    print(false);
     return false;
   }
 
@@ -164,22 +143,14 @@ Author: ${element.author}'''}\n\n";
       if (exists) {
         await initDB();
         final Database db = await database;
-        print(oldversion);
         oldversion = await db.getVersion();
-        print(oldversion);
       }
     } catch (_) {}
     if (oldversion < dbVersion && oldversion != 0) {
-      print("Reading old Database");
       await readDB();
-      print("deleting old Database");
       await deleteDataBase();
-      print("creating new Database");
       await createDB();
-      print("updating new Database");
       await updateDB(dbQuotes);
-    } else {
-      print("Database is at last version");
     }
   }
 
@@ -192,89 +163,8 @@ Author: ${element.author}'''}\n\n";
     await deleteDatabase(path);
   }
 
-  Future<void> getQuotesDb() async {
-    http.Response response = await http.get(getUrlForRoute("/see_db"));
-
-    print(response.body);
-    if (response.statusCode == 200) {
-      jsonResponse = convert.jsonDecode(response.body);
-      print(jsonResponse);
-      jsonResponse.shuffle();
-      jsonToEncoded(jsonResponse);
-      //      jsonResponse[0]["author"]; = author name
-      //      jsonResponse[0]["quote"]; = quotes text
-    } else {
-      print("Request failed with status: ${response.statusCode}.");
-    }
-    print("all items got retrieved");
-    dbQuotes = responses;
-    notifyListeners();
-  }
-
-  //try to retrieve all and do the proccesing in the mobile phone
-  //save the qoutes it got from server to DB
-  Future<void> saveQuotesResponse() async {
-    // Get a reference to the database.
-    final Database db = await database;
-
-    // Insert the Dog into the correct table. You might also specify the
-    // `conflictAlgorithm` to use in case the same dog is inserted twice.
-    //
-    // In this case, replace any previous data.
-    testCount = 0;
-    print("\n\n\n\n\n\n\ninserting to Qoutes DB");
-    responses.forEach((element) async {
-      testCount++;
-      print(testCount);
-      await db.insert(
-        tableName,
-        element.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    });
-    notifyListeners();
-  }
-
-  Future<void> getTopicQuotes(String topic) async {
-    http.Response response =
-        await http.get(getUrlForRoute("/GetQuotesByTopicFromDB/?topic=$topic"));
-
-    print(response.body);
-    if (response.statusCode == 200) {
-      jsonResponse = convert.jsonDecode(response.body);
-      print(jsonResponse);
-      jsonResponse.shuffle();
-      jsonToEncoded(jsonResponse);
-//      jsonResponse[0]["author"]; = author name
-//      jsonResponse[0]["quote"]; = quotes text
-    } else {
-      print("Request failed with status: ${response.statusCode}.");
-    }
-    notifyListeners();
-  }
-
   void clearOld() {
-    responses.clear();
     dbQuotes.clear();
-    jsonResponse.clear();
-  }
-
-  Future<void> getTopics() async {
-    if (jsonResponse.isEmpty) {
-      http.Response response = await http.get(getUrlForRoute("/getdbtopics"));
-
-      if (response.statusCode == 200) {
-        jsonResponse = convert.jsonDecode(response.body);
-
-        jsonResponse.shuffle();
-        jsonToEncodedTopics(jsonResponse);
-//      jsonResponse[0]["author"]; = author name
-//      jsonResponse[0]["quote"]; = quotes text
-      } else {
-        print("Request failed with status: ${response.statusCode}.");
-      }
-    }
-    notifyListeners();
   }
 
   Future<void> downloadAndInsertToDb(
@@ -371,13 +261,6 @@ Author: ${element.author}'''}\n\n";
     notifyListeners();
   }
 
-  Future<void> getTopicsFromDB() async {
-    final db = await database;
-    jsonToEncodedTopics(
-        await db.rawQuery('SELECT * DISTINCT topic FROM quotes;'));
-    notifyListeners();
-  }
-
   Future<void> updateDB(List<Quote> list) async {
     // Get a reference to the database.
     final Database db = await database;
@@ -386,7 +269,6 @@ Author: ${element.author}'''}\n\n";
     // `conflictAlgorithm` to use in case the same dog is inserted twice.
     //
     // In this case, replace any previous data.
-    print("\n\n\n\n\n\n\ninserting to DB");
 
     var batch = db.batch();
     list.forEach((element) async {
@@ -394,9 +276,7 @@ Author: ${element.author}'''}\n\n";
           conflictAlgorithm: ConflictAlgorithm.replace);
       //await db.insert(TableName,element.toMap(), conflictAlgorithm: ConflictAlgorithm.replace,);
     });
-    print("batch.commit is excuting");
     await batch.commit(noResult: true);
-    print("Done");
   }
 
   Future<void> readDB() async {
@@ -417,7 +297,6 @@ Author: ${element.author}'''}\n\n";
       );
     });
     dbQuotes.shuffle();
-    oldDbQuotes = dbQuotes;
     notifyListeners();
   }
 
@@ -432,17 +311,6 @@ Author: ${element.author}'''}\n\n";
         await db.rawQuery('''SELECT DISTINCT topic FROM quotes''');
     topics = stableTopicOrder(
         topics, [for (final row in maps) row['topic'] as String]);
-    notifyListeners();
-  }
-
-  Future<void> vacuum() async {
-    await createDB();
-    // Get a reference to the database.
-    final Database db = await database;
-
-    // Query the table for all The Notes.
-    // Convert the List<Map<String, dynamic> into a List<Note>.
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''VACUUM''');
     notifyListeners();
   }
 
@@ -497,23 +365,16 @@ Author: ${element.author}'''}\n\n";
     dbRowCount = Sqflite.firstIntValue(
             await db.rawQuery('SELECT COUNT(*) FROM quotes')) ??
         0;
-    print(dbRowCount);
   }
 
   Future<void> serverQuotesCount() async {
     http.Response response =
         await http.get(getUrlForRoute("/see_saved_online_count"));
 
-    //print(response.body);
     if (response.statusCode == 200) {
       jsonToCount(response.body);
-      //jsonResponse = convert.jsonDecode(response.body);
-      //JsonToCount(jsonResponse);
-
-//      jsonResponse[0]["author"]; = author name
-//      jsonResponse[0]["quote"]; = quotes text
     } else {
-      print("Request failed with status: ${response.statusCode}.");
+      debugPrint("Request failed with status: ${response.statusCode}.");
     }
   }
 }

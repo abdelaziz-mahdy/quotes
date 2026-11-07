@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.0.5+15
+
+- Behind-the-scenes cleanup: removed old unused code and debug logging, so
+  the app does less work in the background.
+
 ## 6.0.4+14
 
 - Favorites stay safe while quotes download.
