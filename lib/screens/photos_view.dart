@@ -150,10 +150,11 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
           const SizedBox(
             height: 5,
           ),
+          // No maxLines: the cap of 10 silently cut long quotes at larger
+          // system font sizes.
           Text(
             data.dbQuotes[index].quote,
             style: const TextStyle(fontSize: 18),
-            maxLines: 10,
           ),
           const SizedBox(
             height: 10,
@@ -166,12 +167,22 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
               Expanded(
                 child: Text(
                   data.dbQuotes[index].author,
-                  style: const TextStyle(fontSize: 18),
+                  // Quieter than the quote so the two don't compete.
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: data.dbQuotes[index].selected == 0
+                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                        : Theme.of(context).colorScheme.onSecondaryContainer,
+                  ),
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               IconButton(
+                  tooltip: data.dbQuotes[index].favorite == 0
+                      ? 'Add to favorites'
+                      : 'Remove from favorites',
                   onPressed: () {
                     setState(() {
                       data.toggleFavoriteUpdateDb(data.dbQuotes, index);
