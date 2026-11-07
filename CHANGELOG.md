@@ -17,6 +17,13 @@
 - **Last row under the gesture bar** on the topic grid and quote lists.
 - A non-200 response from the backend now shows the Retry snackbar instead of
   silently doing nothing.
+- **App froze and the progress bar sat at 0%** during the first download: the
+  quotes are now parsed in the background and the bar animates until the
+  download finishes.
+- **The full quote download no longer reruns on every launch** when the server
+  holds duplicate quotes.
+- Back now leaves the quotes screen in one press when a list reload cleared the
+  selection; selected cards keep readable quote text.
 
 ### Changed
 - Selection mode: a close button and Back now clear the selection; selected
@@ -32,8 +39,9 @@
 ### Build
 - Gradle 8.14.3, AGP 8.13.2, Kotlin 2.3.20 (Flutter 3.47 refuses older).
 - Dependencies upgraded (`cupertino_icons` 2.0.0, `share_plus` 13.3.1,
-  `sqflite` 2.4.5). `flutter test` now has real tests (11) instead of the
-  template counter test.
+  `sqflite` 2.4.5). `flutter test` now has real tests (17) instead of the
+  template counter test, including an in-memory SQLite test that favorites
+  survive a download.
 
 ## 6.0.3+13
 
