@@ -89,7 +89,9 @@ To cut a release:
 1. Bump **both** the version name and build number in `pubspec.yaml`
    (`6.0.3+13` → `6.0.4+14`). **The build number must increase** or Play Store
    rejects the upload as a duplicate version code.
-2. Add a `CHANGELOG.md` entry.
+2. Add a `CHANGELOG.md` entry **written for users** (plain bullets, at most
+   500 characters). CI copies the newest entry into Play's "What's new"
+   (`tool/play_whatsnew.py`); developer detail belongs in the PR and commits.
 3. Commit and push to `master` in **one** push. A second push at the same
    version code will fail at the Play upload step, so bundle related changes
    (docs, fixes, version bump) together.
