@@ -236,7 +236,7 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
     return PreferredSize(
       preferredSize: const Size(double.infinity, kToolbarHeight),
       child: AppBar(
-        title: Text("Selected :$selected"),
+        title: Text("Selected: $selected"),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.blueGrey,
