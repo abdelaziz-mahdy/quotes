@@ -121,9 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: TopicCards(data, context),
               )
             : const Center(
-                child: CircularProgressIndicator(
-                  backgroundColor: Colors.black,
-                ),
+                child: CircularProgressIndicator(),
               );
       }),
       // Center is a layout widget. It takes a single child and positions it

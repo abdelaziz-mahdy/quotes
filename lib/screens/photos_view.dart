@@ -79,9 +79,7 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
                           opacity: _animation, child: ADDFavorite(context));
                     })
                 : const Center(
-                    child: CircularProgressIndicator(
-                      backgroundColor: Colors.black,
-                    ),
+                    child: CircularProgressIndicator(),
                   );
       }),
     );
