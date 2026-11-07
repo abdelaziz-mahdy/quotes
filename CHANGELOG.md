@@ -1,5 +1,16 @@
 # Changelog
 
+## 6.0.4+14
+
+- Favorites stay safe while quotes download.
+- Topics stay in place instead of reshuffling under your finger.
+- Long author names fit; the heart is always visible.
+- Easier-to-read quote cards and a nicer empty Favorites screen.
+- Leave selection mode with the X button or Back.
+- A smooth progress bar while quotes download, and a Retry button if it fails.
+- No more repeated downloads on every launch.
+- Fixed hidden status bar icons and items stuck behind the gesture bar.
+
 ## 6.0.3+13
 
 ### Fixed

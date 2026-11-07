@@ -56,9 +56,8 @@ class _MyHomePageState extends State<MyHomePage> {
       if (processor.dbRowCount == 0) {
         //if the local DB has 0 rows
         print("Downloading preview Qoutes");
-        await processor
-            .downloadPreviewAndInsertToDb(
-                _scaffoldKey); //download a preview for the user
+        await processor.downloadPreviewAndInsertToDb(
+            _scaffoldKey); //download a preview for the user
         print("Downloading Qoutes");
         await processor.downloadAndInsertToDb(
             _scaffoldKey, 0); //0 is downloading first time text
@@ -67,7 +66,8 @@ class _MyHomePageState extends State<MyHomePage> {
         processor.getLocalDBTopics();
         await processor.serverQuotesCount(); //get the server quotes count
         //if the local DB has rows less than than the server ones
-        if (processor.dbRowCount < processor.serverCount) {
+        if (needsQuoteUpdate(processor.dbRowCount, processor.serverCount,
+            await processor.lastSyncedServerCount())) {
           print("updating DB");
           await processor.downloadAndInsertToDb(
               _scaffoldKey, 1); //1 is updating text
@@ -101,6 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
         centerTitle: true,
         actions: [
           IconButton(
+              tooltip: 'Favorites',
               icon: const Icon(
                 Icons.favorite,
                 color: Colors.red,
@@ -115,12 +116,14 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Consumer<Processor>(builder: (context, Processor data, child) {
         return data.topics.isNotEmpty
             ? SingleChildScrollView(
+                // Keep the last row of topics above the gesture bar
+                // (the app draws edge-to-edge on targetSdk 35+).
+                padding: EdgeInsets.fromLTRB(
+                    8, 8, 8, 8 + MediaQuery.paddingOf(context).bottom),
                 child: TopicCards(data, context),
               )
             : const Center(
-                child: CircularProgressIndicator(
-                  backgroundColor: Colors.black,
-                ),
+                child: CircularProgressIndicator(),
               );
       }),
       // Center is a layout widget. It takes a single child and positions it
@@ -130,20 +133,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Wrap TopicCards(Processor data, BuildContext context) {
     return Wrap(
-        spacing: 5,
-        runSpacing: 5,
+        spacing: 4,
+        runSpacing: 4,
         children: data.topics.map<Widget>((document) {
-          return Material(
-            child: InkWell(
-                borderRadius: const BorderRadius.all(Radius.circular(15)),
-                splashColor: Colors.blue,
-                highlightColor: Colors.blue,
-                onTap: () {
-                  Provider.of<Processor>(context, listen: false).clearOld();
-                  //Navigator.push(context, MaterialPageRoute(builder: (context)=>  PhotosList(document)));
-                  Navigator.of(context).push(_createRoute(document));
-                },
-                child: DataCard(document)),
+          return DataCard(
+            document,
+            onTap: () {
+              Provider.of<Processor>(context, listen: false).clearOld();
+              //Navigator.push(context, MaterialPageRoute(builder: (context)=>  PhotosList(document)));
+              Navigator.of(context).push(_createRoute(document));
+            },
           );
         }).toList());
   }
@@ -170,24 +169,26 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class DataCard extends StatelessWidget {
-  var topic;
-  DataCard(this.topic, {super.key});
+  final String topic;
+  final VoidCallback? onTap;
+  const DataCard(this.topic, {super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    //print(data);
+    // The InkWell sits inside the Card (clipped to its shape) so the tap
+    // ripple shows on the chip itself; it used to be painted on a Material
+    // behind the Card, where only a 4px blue rim around the chip lit up.
     return Card(
-      child: Ink(
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(
-            Radius.circular(15),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Text(
+            topic,
+            style: const TextStyle(fontSize: 15),
+            maxLines: 1,
           ),
-        ),
-        padding: const EdgeInsets.all(15),
-        child: Text(
-          topic,
-          style: const TextStyle(fontSize: 15),
-          maxLines: 1,
         ),
       ),
     );

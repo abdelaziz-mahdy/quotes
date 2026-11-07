@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
+import 'dart:io';
+import 'dart:math';
 import 'package:path/path.dart';
 import 'package:quotes/models/quote.dart';
 import 'package:share_plus/share_plus.dart';
@@ -67,6 +70,13 @@ class Processor extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSelection(List<Quote> list) {
+    for (final quote in list) {
+      quote.selected = 0;
+    }
+    notifyListeners();
+  }
+
   void toggleFavoriteUpdateDb(List<Quote> list, int index) {
     list[index].toggleFavorite();
     updateDB(dbQuotes);
@@ -86,7 +96,7 @@ class Processor extends ChangeNotifier {
       stringToShare = "${'''${'''${stringToShare}Quote: ${element.quote}'''}\n
 Author: ${element.author}'''}\n\n";
     }
-    Share.share(stringToShare);
+    SharePlus.instance.share(ShareParams(text: stringToShare));
     notifyListeners();
   }
 
@@ -94,43 +104,56 @@ Author: ${element.author}'''}\n\n";
     return Uri.parse(url + route);
   }
 
-  Future<void> getQuotes() async {
-    http.Response response =
-        await http.get(getUrlForRoute("/see_saved_online"));
-    print(response.body);
-    if (response.statusCode == 200) {
-      jsonResponse = convert.jsonDecode(response.body);
-      print(jsonResponse);
-      jsonResponse.shuffle();
-      jsonToEncoded(jsonResponse);
-//      jsonResponse[0]["author"]; = author name
-//      jsonResponse[0]["quote"]; = quotes text
-    } else {
-      print("Request failed with status: ${response.statusCode}.");
+  /// Downloads [route] and parses it into quotes. Kept in a local list on
+  /// purpose: the screens read [dbQuotes], and the background download must
+  /// never replace or clear the list a screen is showing. Throws on a non-200
+  /// response so the home screen's onStart shows its Retry snackbar.
+  Future<List<Quote>> _fetchQuotes(String route) async {
+    final uri = getUrlForRoute(route);
+    final http.Response response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw http.ClientException(
+          "Request failed with status: ${response.statusCode}.", uri);
     }
-    print("all items got retrieved");
-    dbQuotes = responses;
-    notifyListeners();
+    // The full response is ~8.8 MB / 44k quotes: parse it on a background
+    // isolate so the progress snackbar keeps animating.
+    return compute(quotesFromJson, response.body);
   }
 
-  Future<void> getPreviewQuotes() async {
-    http.Response response =
-        await http.get(getUrlForRoute("/see_saved_online_preview"));
-
-    print(response.body);
-    if (response.statusCode == 200) {
-      jsonResponse = convert.jsonDecode(response.body);
-      print(jsonResponse);
-      jsonResponse.shuffle();
-      jsonToEncoded(jsonResponse);
-//      jsonResponse[0]["author"]; = author name
-//      jsonResponse[0]["quote"]; = quotes text
-    } else {
-      print("Request failed with status: ${response.statusCode}.");
+  /// Adds server quotes the device doesn't have yet. Every column except
+  /// `favorite` is part of the primary key, so ignoring conflicts keeps the
+  /// user's favorites exactly as they are, including ones toggled while the
+  /// download was running.
+  @visibleForTesting
+  Future<void> insertNewQuotes(List<Quote> quotes) async {
+    final Database db = await database;
+    final batch = db.batch();
+    for (final quote in quotes) {
+      batch.insert(tableName, quote.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.ignore);
     }
-    print("all items got retrieved");
-    dbQuotes = responses;
-    notifyListeners();
+    await batch.commit(noResult: true);
+  }
+
+  // Server count at the last completed full download, kept next to the DB.
+  // Rows are inserted with ConflictAlgorithm.ignore, so duplicate rows on the
+  // server keep the local count below the server's forever; without this the
+  // full download would rerun on every launch.
+  Future<File> _syncMarker() async =>
+      File(join(await getDatabasesPath(), 'last_synced_server_count'));
+
+  Future<int?> lastSyncedServerCount() async {
+    try {
+      final file = await _syncMarker();
+      if (!await file.exists()) return null;
+      return int.tryParse((await file.readAsString()).trim());
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  Future<void> _recordSyncedServerCount(int count) async {
+    await (await _syncMarker()).writeAsString('$count');
   }
 
   Future<void> checkNewDatabaseVersion() async {
@@ -261,21 +284,14 @@ Author: ${element.author}'''}\n\n";
     await createDB();
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
-        .showSnackBar(downloading(state[0], snackText));
-    await readDB();
-    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scaffold.currentContext!)
-        .showSnackBar(downloading(state[1], snackText));
-    //await getQuotes_db();
-    await getQuotes();
+        .showSnackBar(downloading(null, snackText));
+    final quotes = await _fetchQuotes("/see_saved_online");
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
         .showSnackBar(downloading(state[2], snackText));
-    await updateDB(dbQuotes);
-    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scaffold.currentContext!)
-        .showSnackBar(downloading(state[3], snackText));
-    await updateDB(oldDbQuotes);
+    await insertNewQuotes(quotes);
+    await _recordSyncedServerCount(
+        serverCount > 0 ? serverCount : quotes.length);
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
         .showSnackBar(downloading(state[4], snackText));
@@ -288,15 +304,12 @@ Author: ${element.author}'''}\n\n";
     await createDB();
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
-        .showSnackBar(downloading(state[0], 2));
-
-    //await getQuotes_db();
-    await getPreviewQuotes();
+        .showSnackBar(downloading(null, 2));
+    final quotes = await _fetchQuotes("/see_saved_online_preview");
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
         .showSnackBar(downloading(state[3], 2));
-
-    await updateDB(dbQuotes);
+    await insertNewQuotes(quotes);
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
         .showSnackBar(downloading(state[4], 2));
@@ -417,10 +430,8 @@ Author: ${element.author}'''}\n\n";
     // Convert the List<Map<String, dynamic> into a List<Note>.
     final List<Map<String, dynamic>> maps =
         await db.rawQuery('''SELECT DISTINCT topic FROM quotes''');
-    topics = List.generate(maps.length, (i) {
-      return maps[i]['topic'];
-    });
-    topics.shuffle();
+    topics = stableTopicOrder(
+        topics, [for (final row in maps) row['topic'] as String]);
     notifyListeners();
   }
 
@@ -506,3 +517,36 @@ Author: ${element.author}'''}\n\n";
     }
   }
 }
+
+/// Parses the backend's JSON array of `{quote, author, topic}` objects.
+List<Quote> quotesFromJson(String body) {
+  final List<dynamic> rows = convert.jsonDecode(body);
+  return [
+    for (final row in rows)
+      Quote(row['quote'] as String, row['author'] as String,
+          row['topic'] as String, 0),
+  ];
+}
+
+/// Keeps the topics already on screen where they are and appends new ones in
+/// random order. The grid is still shuffled on each launch, but a refresh
+/// after a download no longer moves the chip under the user's finger.
+List<String> stableTopicOrder(List<String> current, List<String> fresh,
+    [Random? random]) {
+  final freshSet = fresh.toSet();
+  final kept = [
+    for (final t in current)
+      if (freshSet.contains(t)) t
+  ];
+  final keptSet = kept.toSet();
+  final added = [
+    for (final t in fresh)
+      if (!keptSet.contains(t)) t
+  ]..shuffle(random);
+  return [...kept, ...added];
+}
+
+/// Whether to run the full update download: the server has more quotes than
+/// the device, and that server count isn't the one already fully synced.
+bool needsQuoteUpdate(int localCount, int serverCount, int? lastSynced) =>
+    localCount < serverCount && serverCount != lastSynced;

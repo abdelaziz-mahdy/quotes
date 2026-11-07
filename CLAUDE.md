@@ -49,7 +49,12 @@ Small app, no state-management framework beyond `provider`.
 2. `rowsCount()` → if the local DB is **empty**: download preview quotes, then the
    full set (each step updates a progress snackbar 0→100%).
 3. If the DB already has rows: load topics locally, then compare local count vs
-   `serverQuotesCount()` and download an update only if the server has more.
+   `serverQuotesCount()` and download an update only if the server has more
+   **and** that server count isn't the one recorded after the last completed
+   full download (`last_synced_server_count` file next to the DB). New quotes
+   are inserted with `ConflictAlgorithm.ignore`, so existing rows and their
+   favorites are never touched, and server duplicates can't trigger a
+   re-download on every launch.
 4. On **any** failure the whole thing is wrapped in try/catch → clears the
    progress snackbar and shows `downloadFailed` with a **Retry** that re-runs
    `onStart`. Preserve this — without it a network failure freezes the UI at "0%".
@@ -73,15 +78,20 @@ Small app, no state-management framework beyond `provider`.
 **Releasing = pushing to `master`.** `.github/workflows/deploy.yml` triggers on
 `push` to `master`: it does `flutter pub get`, `flutter analyze`
 (`--no-fatal-infos --no-fatal-warnings`), `flutter build appbundle --release`,
-and uploads the AAB to **Google Play internal testing** via
+and uploads the AAB to **Google Play production** via
 `r0adkll/upload-google-play` (signed with secrets `ANDROID_KEYSTORE`,
-`ANDROID_KEY_PROPERTIES`, `PRODUCTION_CREDENTIAL_FILE`).
+`ANDROID_KEY_PROPERTIES`, `PRODUCTION_CREDENTIAL_FILE`). The workflow's
+`track:` line is commented out, so the action's default track (production)
+applies. This is intended: testing happens before merge (device walk, tests,
+owner review), so **merging to `master` is a public release.**
 
 To cut a release:
 1. Bump **both** the version name and build number in `pubspec.yaml`
    (`6.0.3+13` → `6.0.4+14`). **The build number must increase** or Play Store
    rejects the upload as a duplicate version code.
-2. Add a `CHANGELOG.md` entry.
+2. Add a `CHANGELOG.md` entry **written for users** (plain bullets, at most
+   500 characters). CI copies the newest entry into Play's "What's new"
+   (`tool/play_whatsnew.py`); developer detail belongs in the PR and commits.
 3. Commit and push to `master` in **one** push. A second push at the same
    version code will fail at the Play upload step, so bundle related changes
    (docs, fixes, version bump) together.

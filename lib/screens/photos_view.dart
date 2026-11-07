@@ -45,47 +45,66 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: Provider.of<Processor>(context, listen: false).selectedExist(
-                  Provider.of<Processor>(context, listen: false).dbQuotes) ==
-              true
-          ? selectedAppBar(context)
-          : NormalAppBar(),
+    // Listen, so a list reload that drops the selection also re-enables Back.
+    final selecting =
+        context.select<Processor, bool>((p) => p.selectedExist(p.dbQuotes));
+    // While quotes are selected, Back clears the selection instead of
+    // leaving the screen.
+    return PopScope(
+      canPop: !selecting,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) clearSelection();
+      },
+      child: Scaffold(
+        appBar: selecting ? selectedAppBar(context) : NormalAppBar(),
 
-      // Center is a layout widget. It takes a single child and positions it
-      // in the middle of the parent.
-      body: Consumer<Processor>(builder: (context, Processor data, child) {
-        return data.dbQuotes.isNotEmpty
-            ? ListView.separated(
-                padding: const EdgeInsets.all(8),
-                separatorBuilder: (BuildContext context, int index) =>
-                    const Divider(),
-                itemCount: data.dbQuotes.length,
-                itemBuilder: (BuildContext context, int index) {
-                  _controller.forward();
-                  return FadeTransition(
-                      opacity: _animation,
-                      child: buildQuotesCards(context, data, index));
-                })
-            : data.dbQuotes.isEmpty && appTitle == "Favorite"
-                ? ListView.separated(
-                    padding: const EdgeInsets.all(8),
-                    separatorBuilder: (BuildContext context, int index) =>
-                        const Divider(),
-                    itemCount: 1,
-                    itemBuilder: (BuildContext context, int index) {
-                      _controller.forward();
-                      return FadeTransition(
-                          opacity: _animation, child: ADDFavorite(context));
-                    })
-                : const Center(
-                    child: CircularProgressIndicator(
-                      backgroundColor: Colors.black,
-                    ),
-                  );
-      }),
+        // Center is a layout widget. It takes a single child and positions it
+        // in the middle of the parent.
+        body: Consumer<Processor>(builder: (context, Processor data, child) {
+          return data.dbQuotes.isNotEmpty
+              ? ListView.separated(
+                  padding: _listPadding(context),
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const Divider(),
+                  itemCount: data.dbQuotes.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    _controller.forward();
+                    return FadeTransition(
+                        opacity: _animation,
+                        child: buildQuotesCards(context, data, index));
+                  })
+              : data.dbQuotes.isEmpty && appTitle == "Favorite"
+                  ? ListView.separated(
+                      padding: _listPadding(context),
+                      separatorBuilder: (BuildContext context, int index) =>
+                          const Divider(),
+                      itemCount: 1,
+                      itemBuilder: (BuildContext context, int index) {
+                        _controller.forward();
+                        return FadeTransition(
+                            opacity: _animation, child: ADDFavorite(context));
+                      })
+                  : const Center(
+                      child: CircularProgressIndicator(),
+                    );
+        }),
+      ),
     );
   }
+
+  void clearSelection() {
+    setState(() {
+      final processor = Provider.of<Processor>(context, listen: false);
+      processor.clearSelection(processor.dbQuotes);
+      onTapSelect = false;
+    });
+  }
+
+  /// An explicit ListView padding replaces the automatic safe-area padding,
+  /// so add the bottom inset back: with edge-to-edge (targetSdk 35+) the last
+  /// card otherwise ends under the gesture bar.
+  EdgeInsets _listPadding(BuildContext context) =>
+      EdgeInsets.fromLTRB(8, 8, 8, 8 + MediaQuery.paddingOf(context).bottom);
 
   Material buildQuotesCards(BuildContext context, Processor data, int index) {
     return Material(
@@ -93,8 +112,6 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
           borderRadius: const BorderRadius.all(
             Radius.circular(20),
           ),
-          splashColor: Colors.blue,
-          highlightColor: Colors.blue,
           onTap: () {
             if (onTapSelect == true) {
               setState(() {
@@ -120,7 +137,13 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         color: data.dbQuotes[index].selected == 0
             ? Theme.of(context).cardColor
-            : Colors.blueGrey,
+            : Theme.of(context).colorScheme.secondaryContainer,
+        // The tint alone is close to the page colour; the outline makes a
+        // selected card obvious at a glance.
+        border: data.dbQuotes[index].selected == 0
+            ? null
+            : Border.all(
+                color: Theme.of(context).colorScheme.primary, width: 2),
         borderRadius: const BorderRadius.all(
           Radius.circular(20),
         ),
@@ -132,10 +155,17 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
           const SizedBox(
             height: 5,
           ),
+          // No maxLines: the cap of 10 silently cut long quotes at larger
+          // system font sizes.
           Text(
             data.dbQuotes[index].quote,
-            style: const TextStyle(fontSize: 18),
-            maxLines: 10,
+            style: TextStyle(
+              fontSize: 18,
+              // Paired with the selected card's secondaryContainer fill.
+              color: data.dbQuotes[index].selected == 0
+                  ? null
+                  : Theme.of(context).colorScheme.onSecondaryContainer,
+            ),
           ),
           const SizedBox(
             height: 10,
@@ -143,13 +173,27 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                data.dbQuotes[index].author,
-                style: const TextStyle(fontSize: 18),
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
+              // Expanded so long names ("Philip Stanhope, 4th Earl of
+              // Chesterfield") wrap instead of pushing the heart off screen.
+              Expanded(
+                child: Text(
+                  data.dbQuotes[index].author,
+                  // Quieter than the quote so the two don't compete.
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: data.dbQuotes[index].selected == 0
+                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                        : Theme.of(context).colorScheme.onSecondaryContainer,
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               IconButton(
+                  tooltip: data.dbQuotes[index].favorite == 0
+                      ? 'Add to favorites'
+                      : 'Remove from favorites',
                   onPressed: () {
                     setState(() {
                       data.toggleFavoriteUpdateDb(data.dbQuotes, index);
@@ -169,31 +213,26 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
     );
   }
 
-  Ink ADDFavorite(BuildContext context) {
-    return Ink(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.all(
-          Radius.circular(20),
-        ),
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 3.0,
-            spreadRadius: 1.0,
-          )
-        ],
-      ),
-      padding: const EdgeInsets.all(15),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget ADDFavorite(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 96, 32, 32),
+      child: Column(
         children: [
-          SizedBox(
-            height: 5,
-          ),
+          Icon(Icons.favorite_border,
+              size: 64, color: theme.colorScheme.outline),
+          const SizedBox(height: 16),
           Text(
-            'Please Add Some Favorite quotes to display here',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            maxLines: 10,
+            'No favorite quotes yet',
+            style: theme.textTheme.titleLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap the heart on any quote to see it here.',
+            style: theme.textTheme.bodyLarge
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -212,7 +251,10 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
         title: Text("$appTitle Quotes"),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        // Not Colors.transparent: AppBar picks the status bar icon colour from
+        // its background, and transparent reads as dark, which put white
+        // icons on the light theme's white page.
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       ),
     );
   }
@@ -223,13 +265,20 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
     return PreferredSize(
       preferredSize: const Size(double.infinity, kToolbarHeight),
       child: AppBar(
-        title: Text("Selected :$selected"),
+        title: Text("Selected: $selected"),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+        foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: 'Clear selection',
+          onPressed: clearSelection,
+        ),
         actions: [
           IconButton(
               icon: const Icon(Icons.share),
+              tooltip: 'Share selected quotes',
               onPressed: () {
                 setState(() {
                   Provider.of<Processor>(context, listen: false).shareSelected(
