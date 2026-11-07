@@ -116,8 +116,8 @@ class _MyHomePageState extends State<MyHomePage> {
             ? SingleChildScrollView(
                 // Keep the last row of topics above the gesture bar
                 // (the app draws edge-to-edge on targetSdk 35+).
-                padding: EdgeInsets.only(
-                    bottom: MediaQuery.paddingOf(context).bottom),
+                padding: EdgeInsets.fromLTRB(
+                    8, 8, 8, 8 + MediaQuery.paddingOf(context).bottom),
                 child: TopicCards(data, context),
               )
             : const Center(
@@ -133,20 +133,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Wrap TopicCards(Processor data, BuildContext context) {
     return Wrap(
-        spacing: 5,
-        runSpacing: 5,
+        spacing: 4,
+        runSpacing: 4,
         children: data.topics.map<Widget>((document) {
-          return Material(
-            child: InkWell(
-                borderRadius: const BorderRadius.all(Radius.circular(15)),
-                splashColor: Colors.blue,
-                highlightColor: Colors.blue,
-                onTap: () {
-                  Provider.of<Processor>(context, listen: false).clearOld();
-                  //Navigator.push(context, MaterialPageRoute(builder: (context)=>  PhotosList(document)));
-                  Navigator.of(context).push(_createRoute(document));
-                },
-                child: DataCard(document)),
+          return DataCard(
+            document,
+            onTap: () {
+              Provider.of<Processor>(context, listen: false).clearOld();
+              //Navigator.push(context, MaterialPageRoute(builder: (context)=>  PhotosList(document)));
+              Navigator.of(context).push(_createRoute(document));
+            },
           );
         }).toList());
   }
@@ -173,24 +169,26 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class DataCard extends StatelessWidget {
-  var topic;
-  DataCard(this.topic, {super.key});
+  final String topic;
+  final VoidCallback? onTap;
+  const DataCard(this.topic, {super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    //print(data);
+    // The InkWell sits inside the Card (clipped to its shape) so the tap
+    // ripple shows on the chip itself; it used to be painted on a Material
+    // behind the Card, where only a 4px blue rim around the chip lit up.
     return Card(
-      child: Ink(
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(
-            Radius.circular(15),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Text(
+            topic,
+            style: const TextStyle(fontSize: 15),
+            maxLines: 1,
           ),
-        ),
-        padding: const EdgeInsets.all(15),
-        child: Text(
-          topic,
-          style: const TextStyle(fontSize: 15),
-          maxLines: 1,
         ),
       ),
     );
