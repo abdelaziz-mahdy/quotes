@@ -9,15 +9,15 @@ SnackBar downloading(int state, int snackText) {
   switch (snackText) {
     case 0:
       snackBarText =
-          'Downloading quotes so you can use the app offline \n\n\n relax and wait ♥\n';
+          'Downloading quotes so you can use the app offline.\nRelax and wait ♥\n';
       break;
     case 1:
       snackBarText =
-          'Updating quotes so you can have more quotes to enjoy \n\n\n relax and wait ♥\n';
+          'Updating quotes so you can have more quotes to enjoy.\nRelax and wait ♥\n';
       break;
     case 2:
       snackBarText =
-          'Preview is on the way so you can see how the app look like\n';
+          'Preview is on the way so you can see what the app looks like\n';
       break;
     default:
       snackBarText = 'Downloading...';
