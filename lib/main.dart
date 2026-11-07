@@ -56,9 +56,8 @@ class _MyHomePageState extends State<MyHomePage> {
       if (processor.dbRowCount == 0) {
         //if the local DB has 0 rows
         print("Downloading preview Qoutes");
-        await processor
-            .downloadPreviewAndInsertToDb(
-                _scaffoldKey); //download a preview for the user
+        await processor.downloadPreviewAndInsertToDb(
+            _scaffoldKey); //download a preview for the user
         print("Downloading Qoutes");
         await processor.downloadAndInsertToDb(
             _scaffoldKey, 0); //0 is downloading first time text
@@ -115,6 +114,10 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Consumer<Processor>(builder: (context, Processor data, child) {
         return data.topics.isNotEmpty
             ? SingleChildScrollView(
+                // Keep the last row of topics above the gesture bar
+                // (the app draws edge-to-edge on targetSdk 35+).
+                padding: EdgeInsets.only(
+                    bottom: MediaQuery.paddingOf(context).bottom),
                 child: TopicCards(data, context),
               )
             : const Center(

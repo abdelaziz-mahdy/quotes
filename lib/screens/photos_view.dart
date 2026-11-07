@@ -57,7 +57,7 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
       body: Consumer<Processor>(builder: (context, Processor data, child) {
         return data.dbQuotes.isNotEmpty
             ? ListView.separated(
-                padding: const EdgeInsets.all(8),
+                padding: _listPadding(context),
                 separatorBuilder: (BuildContext context, int index) =>
                     const Divider(),
                 itemCount: data.dbQuotes.length,
@@ -69,7 +69,7 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
                 })
             : data.dbQuotes.isEmpty && appTitle == "Favorite"
                 ? ListView.separated(
-                    padding: const EdgeInsets.all(8),
+                    padding: _listPadding(context),
                     separatorBuilder: (BuildContext context, int index) =>
                         const Divider(),
                     itemCount: 1,
@@ -86,6 +86,12 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
       }),
     );
   }
+
+  /// An explicit ListView padding replaces the automatic safe-area padding,
+  /// so add the bottom inset back: with edge-to-edge (targetSdk 35+) the last
+  /// card otherwise ends under the gesture bar.
+  EdgeInsets _listPadding(BuildContext context) =>
+      EdgeInsets.fromLTRB(8, 8, 8, 8 + MediaQuery.paddingOf(context).bottom);
 
   Material buildQuotesCards(BuildContext context, Processor data, int index) {
     return Material(
