@@ -212,7 +212,10 @@ class _PhotosListState extends State<PhotosList> with TickerProviderStateMixin {
         title: Text("$appTitle Quotes"),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        // Not Colors.transparent: AppBar picks the status bar icon colour from
+        // its background, and transparent reads as dark, which put white
+        // icons on the light theme's white page.
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       ),
     );
   }
