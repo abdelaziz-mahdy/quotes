@@ -94,43 +94,32 @@ Author: ${element.author}'''}\n\n";
     return Uri.parse(url + route);
   }
 
-  Future<void> getQuotes() async {
-    http.Response response =
-        await http.get(getUrlForRoute("/see_saved_online"));
-    print(response.body);
-    if (response.statusCode == 200) {
-      jsonResponse = convert.jsonDecode(response.body);
-      print(jsonResponse);
-      jsonResponse.shuffle();
-      jsonToEncoded(jsonResponse);
-//      jsonResponse[0]["author"]; = author name
-//      jsonResponse[0]["quote"]; = quotes text
-    } else {
-      print("Request failed with status: ${response.statusCode}.");
+  /// Downloads [route] and parses it into quotes. Kept in a local list on
+  /// purpose: the screens read [dbQuotes], and the background download must
+  /// never replace or clear the list a screen is showing. Throws on a non-200
+  /// response so the home screen's onStart shows its Retry snackbar.
+  Future<List<Quote>> _fetchQuotes(String route) async {
+    final uri = getUrlForRoute(route);
+    final http.Response response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw http.ClientException(
+          "Request failed with status: ${response.statusCode}.", uri);
     }
-    print("all items got retrieved");
-    dbQuotes = responses;
-    notifyListeners();
+    return quotesFromJson(response.body);
   }
 
-  Future<void> getPreviewQuotes() async {
-    http.Response response =
-        await http.get(getUrlForRoute("/see_saved_online_preview"));
-
-    print(response.body);
-    if (response.statusCode == 200) {
-      jsonResponse = convert.jsonDecode(response.body);
-      print(jsonResponse);
-      jsonResponse.shuffle();
-      jsonToEncoded(jsonResponse);
-//      jsonResponse[0]["author"]; = author name
-//      jsonResponse[0]["quote"]; = quotes text
-    } else {
-      print("Request failed with status: ${response.statusCode}.");
+  /// Adds server quotes the device doesn't have yet. Every column except
+  /// `favorite` is part of the primary key, so ignoring conflicts keeps the
+  /// user's favorites exactly as they are, including ones toggled while the
+  /// download was running.
+  Future<void> _insertNewQuotes(List<Quote> quotes) async {
+    final Database db = await database;
+    final batch = db.batch();
+    for (final quote in quotes) {
+      batch.insert(tableName, quote.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.ignore);
     }
-    print("all items got retrieved");
-    dbQuotes = responses;
-    notifyListeners();
+    await batch.commit(noResult: true);
   }
 
   Future<void> checkNewDatabaseVersion() async {
@@ -262,20 +251,11 @@ Author: ${element.author}'''}\n\n";
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
         .showSnackBar(downloading(state[0], snackText));
-    await readDB();
-    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scaffold.currentContext!)
-        .showSnackBar(downloading(state[1], snackText));
-    //await getQuotes_db();
-    await getQuotes();
+    final quotes = await _fetchQuotes("/see_saved_online");
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
         .showSnackBar(downloading(state[2], snackText));
-    await updateDB(dbQuotes);
-    ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
-    ScaffoldMessenger.of(scaffold.currentContext!)
-        .showSnackBar(downloading(state[3], snackText));
-    await updateDB(oldDbQuotes);
+    await _insertNewQuotes(quotes);
     ScaffoldMessenger.of(scaffold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scaffold.currentContext!)
         .showSnackBar(downloading(state[4], snackText));
@@ -289,14 +269,11 @@ Author: ${element.author}'''}\n\n";
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
         .showSnackBar(downloading(state[0], 2));
-
-    //await getQuotes_db();
-    await getPreviewQuotes();
+    final quotes = await _fetchQuotes("/see_saved_online_preview");
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
         .showSnackBar(downloading(state[3], 2));
-
-    await updateDB(dbQuotes);
+    await _insertNewQuotes(quotes);
     ScaffoldMessenger.of(scafold.currentContext!).removeCurrentSnackBar();
     ScaffoldMessenger.of(scafold.currentContext!)
         .showSnackBar(downloading(state[4], 2));
@@ -505,4 +482,14 @@ Author: ${element.author}'''}\n\n";
       print("Request failed with status: ${response.statusCode}.");
     }
   }
+}
+
+/// Parses the backend's JSON array of `{quote, author, topic}` objects.
+List<Quote> quotesFromJson(String body) {
+  final List<dynamic> rows = convert.jsonDecode(body);
+  return [
+    for (final row in rows)
+      Quote(row['quote'] as String, row['author'] as String,
+          row['topic'] as String, 0),
+  ];
 }
