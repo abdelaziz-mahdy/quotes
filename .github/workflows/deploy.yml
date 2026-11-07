@@ -1,10 +1,21 @@
-## Github Actions CI workflow to deploy to Internal testing in the Play Store
+## Github Actions CI workflow: every app change pushed to master is a Play
+## Store production release.
 name: CI_STORE_DEPLOY_ANDROID
 
 on:
-  # Run this workflow when any new code is pushed into the main branch
   push:
     branches: [master]
+    # Only app changes are a release. A push that touches nothing but the
+    # backend, docs, tests or CI would re-upload the same version code, which
+    # Play rejects, so it doesn't run the deploy.
+    paths-ignore:
+      - 'server/**'
+      - '**/*.md'
+      - '*.md'
+      - 'test/**'
+      - 'tool/**'
+      - '.github/**'
+      - 'docs/**'
 concurrency: 
     group: auto-deploy
     cancel-in-progress: true

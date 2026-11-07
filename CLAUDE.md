@@ -101,6 +101,10 @@ Notes:
 - The workflow triggers on branch push, **not** on git tags. (Global guidance
   about `v*` tags applies to tag-triggered pipelines; this repo is push-triggered.)
 - `concurrency: cancel-in-progress` means a newer push cancels an in-flight run.
+- `paths-ignore` skips the deploy for pushes that only touch `server/**`,
+  markdown, `test/**`, `tool/**` or `.github/**`. A re-upload at the same
+  version code would fail, so those changes don't release on their own.
+  Workflow edits therefore don't run until the next app release.
 
 ## Conventions & housekeeping
 
