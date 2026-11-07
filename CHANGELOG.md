@@ -2,46 +2,14 @@
 
 ## 6.0.4+14
 
-### Fixed
-- **Favorites lost / wrong quotes during a download.** Opening a topic or
-  Favorites while the first-launch or update download was running showed every
-  quote on the server under that topic and could reset all favorites. The
-  download now works on its own list and inserts new quotes without touching
-  existing rows (`ConflictAlgorithm.ignore`), so favorites always survive.
-- **Topic grid reshuffled under the finger** when a download finished; topics
-  already on screen now keep their place.
-- **Long author names** ("Philip Stanhope, 4th Earl of Chesterfield")
-  overflowed the quote card and hid the favorite button.
-- **Status bar icons invisible** (white on white) on the quotes screens in the
-  light theme.
-- **Last row under the gesture bar** on the topic grid and quote lists.
-- A non-200 response from the backend now shows the Retry snackbar instead of
-  silently doing nothing.
-- **App froze and the progress bar sat at 0%** during the first download: the
-  quotes are now parsed in the background and the bar animates until the
-  download finishes.
-- **The full quote download no longer reruns on every launch** when the server
-  holds duplicate quotes.
-- Back now leaves the quotes screen in one press when a list reload cleared the
-  selection; selected cards keep readable quote text.
-
-### Changed
-- Selection mode: a close button and Back now clear the selection; selected
-  cards are outlined; "Selected: N" spacing.
-- Quote cards: quieter author line under the quote, full quote text (no
-  10-line cut-off), theme ripple instead of a solid blue flash; topic chips
-  show their ripple and have page gutters.
-- Download progress snackbar uses theme colours with a progress bar; tidier
-  copy. Spinners lose the black track. Empty Favorites shows a proper empty
-  state. Tooltips on the Favorites, favorite and share buttons.
-- Sharing uses `SharePlus.instance.share`.
-
-### Build
-- Gradle 8.14.3, AGP 8.13.2, Kotlin 2.3.20 (Flutter 3.47 refuses older).
-- Dependencies upgraded (`cupertino_icons` 2.0.0, `share_plus` 13.3.1,
-  `sqflite` 2.4.5). `flutter test` now has real tests (17) instead of the
-  template counter test, including an in-memory SQLite test that favorites
-  survive a download.
+- Favorites stay safe while quotes download.
+- Topics stay in place instead of reshuffling under your finger.
+- Long author names fit; the heart is always visible.
+- Easier-to-read quote cards and a nicer empty Favorites screen.
+- Leave selection mode with the X button or Back.
+- A smooth progress bar while quotes download, and a Retry button if it fails.
+- No more repeated downloads on every launch.
+- Fixed hidden status bar icons and items stuck behind the gesture bar.
 
 ## 6.0.3+13
 
